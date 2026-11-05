@@ -5,17 +5,27 @@
  * what changed or issue a second round-trip.
  */
 
+import fs from 'node:fs';
+
 import {
+  addToShelf,
+  disableAll,
   disableSkills,
   enableAll,
   enableSkills,
   getState,
+  gitInit,
+  importFiles,
   installSource,
   linkAll,
   readSkill,
   removeSkill,
+  savePreferences,
+  tierOf,
 } from '../core/index.js';
 import { countByAction } from '../core/plan.js';
+
+const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
 
 export class ApiError extends Error {
   /**
@@ -104,6 +114,7 @@ export async function handleApi({ method, pathname, body, hubDir }) {
     const source = String(body?.source ?? '').trim();
     if (!source) throw new ApiError(400, 'missing "source"');
     const result = await installSource(source, hubDir, { overwrite: Boolean(body?.overwrite) });
+    addToShelf(hubDir, result.installed.map((item) => item.name));
     linkAll({ hubDir });
     return { status: 200, json: { ...result, state: publicState(getState({ hubDir })) } };
   }
@@ -111,6 +122,7 @@ export async function handleApi({ method, pathname, body, hubDir }) {
   if (route === 'POST /api/shelf') {
     const mode = String(body?.mode ?? 'all');
     if (mode === 'all') enableAll(hubDir);
+    else if (mode === 'none') disableAll(hubDir);
     else if (mode === 'shelf') {
       /* no-op: keep current shelf */
     } else throw new ApiError(400, `unknown shelf mode: ${mode}`);
@@ -118,7 +130,44 @@ export async function handleApi({ method, pathname, body, hubDir }) {
     return { status: 200, json: publicState(getState({ hubDir })) };
   }
 
+  if (route === 'POST /api/preferences') {
+    savePreferences(hubDir, {
+      budget: body?.budget,
+      dailyRequests: body?.dailyRequests,
+    });
+    return { status: 200, json: publicState(getState({ hubDir })) };
+  }
+
+  if (route === 'POST /api/git/init') {
+    const result = gitInit(hubDir);
+    return { status: 200, json: { ...result, state: publicState(getState({ hubDir })) } };
+  }
+
   throw new ApiError(404, `no such endpoint: ${route}`);
+}
+
+/**
+ * Handle a drag-and-drop upload: rebuild the tree in a temp dir, then install it
+ * exactly like a cloned repository.
+ *
+ * @param {{ name: string | null, filename: string | null, data: Buffer }[]} parts
+ * @param {string} hubDir
+ * @returns {{ installed: { name: string, action: string }[], state: any }}
+ */
+export function importUpload(parts, hubDir) {
+  const files = parts
+    .filter((part) => part.name === 'files' && part.filename)
+    .map((part) => ({ path: part.filename, data: part.data }));
+
+  const overwritePart = parts.find((part) => part.name === 'overwrite');
+  const overwrite = overwritePart ? overwritePart.data.toString('utf8').trim() === 'true' : false;
+
+  if (files.length === 0) throw new ApiError(400, 'no files in the upload');
+
+  const { installed } = importFiles(files, hubDir, { overwrite });
+  addToShelf(hubDir, installed.map((item) => item.name));
+  linkAll({ hubDir });
+  return { installed, state: publicState(getState({ hubDir })) };
 }
 
 /**
@@ -128,12 +177,23 @@ export async function handleApi({ method, pathname, body, hubDir }) {
  * @param {ReturnType<typeof getState>} state
  */
 export function publicState(state) {
+  const shelf = state.shelf;
+  const onShelf = (name) => shelf === null || shelf.includes(name);
+
   return {
     hubDir: state.hubDir,
     exists: state.exists,
     platform: state.platform,
-    shelf: state.shelf,
+    version: pkg.version,
+    shelf,
     stats: state.stats,
+    budget: state.budget,
+    dailyRequests: state.dailyRequests,
+    projection: state.projection,
+    savings: state.savings,
+    spenders: state.spenders,
+    tiers: state.tiers,
+    git: state.git,
     tools: state.tools.map((tool) => ({
       id: tool.id,
       label: tool.label,
@@ -149,6 +209,8 @@ export function publicState(state) {
       bytes: skill.bytes,
       catalogTokens: skill.catalogTokens,
       bodyTokens: skill.bodyTokens,
+      tier: tierOf(skill.catalogTokens).id,
+      onShelf: onShelf(skill.name),
       updatedAt: skill.updatedAt,
       source: skill.source,
     })),

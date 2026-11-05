@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import {
   CONFIG_NAME,
   DEFAULT_HUB,
+  addToShelf,
   buildPlan,
   countByAction,
   detectTools,
@@ -22,6 +23,8 @@ import {
   enableSkills,
   ensureHub,
   getState,
+  gitInit,
+  gitStatus,
   installSource,
   linkAll,
   listSkills,
@@ -31,6 +34,7 @@ import {
   removeSkill,
   resolveHubDir,
   saveConfig,
+  savePreferences,
   summarize,
 } from './core/index.js';
 import { formatTokens } from './core/tokens.js';
@@ -88,6 +92,10 @@ async function main(argv) {
       return cmdServe(hubDir, flags);
     case 'mcp':
       return cmdMcp(hubDir, flags);
+    case 'git':
+      return cmdGit(hubDir, rest, flags);
+    case 'config':
+      return cmdConfig(hubDir, rest, flags);
     case 'doctor':
       return cmdDoctor(hubDir, flags);
     default:
@@ -135,6 +143,7 @@ async function cmdAdd(hubDir, sources, flags) {
   let added = 0;
   let updated = 0;
   let skipped = 0;
+  const names = [];
 
   for (const source of sources) {
     console.log(`${color.bold('→')} ${source}`);
@@ -144,6 +153,7 @@ async function cmdAdd(hubDir, sources, flags) {
     });
 
     for (const item of result.installed) {
+      names.push(item.name);
       if (item.action === 'added') added += 1;
       else if (item.action === 'updated') updated += 1;
       else skipped += 1;
@@ -157,6 +167,7 @@ async function cmdAdd(hubDir, sources, flags) {
     };
   }
   saveConfig(hubDir, config);
+  addToShelf(hubDir, names);
 
   console.log(`\n${color.green('✓')} added ${added}, updated ${updated}, skipped ${skipped}`);
   if (!flags['no-link']) relink(hubDir, flags);
@@ -313,6 +324,69 @@ async function cmdServe(hubDir, flags) {
 async function cmdMcp(hubDir) {
   const { startMcpServer } = await import('./mcp/server.js');
   await startMcpServer({ hubDir });
+}
+
+/**
+ * `skillhub git [init|status]` — turn the hub into a repository and show what to
+ * do next. Never pushes, never adds a remote: that stays a human decision.
+ *
+ * @param {string} hubDir
+ * @param {string[]} args
+ */
+function cmdGit(hubDir, args) {
+  const sub = args[0] ?? 'status';
+
+  if (sub === 'init') {
+    const result = gitInit(hubDir);
+    if (result.ok) {
+      console.log(`${color.green('✓')} git repository ready${result.committed ? ' (initial commit created)' : ''}`);
+    } else {
+      console.log(`${color.yellow('!')} ${result.reason}`);
+    }
+    if (result.gitignore) console.log(color.dim('  wrote .gitignore'));
+    console.log(`\n${color.bold('next')}`);
+    for (const command of result.next) console.log(`  ${command}`);
+    return;
+  }
+
+  const status = gitStatus(hubDir);
+  if (!status.isRepo) {
+    console.log(`${color.yellow('!')} not a git repository — run: ${color.cyan('skillhub git init')}`);
+    return;
+  }
+
+  console.log(`${color.green('✓')} repository   ${hubDir}`);
+  console.log(`  branch     ${status.branch ?? '?'}`);
+  console.log(`  remote     ${status.remote ?? color.dim('(none)')}`);
+  console.log(`  commits    ${status.commits ?? '?'}`);
+  console.log(`  changes    ${status.dirty === null ? color.dim('(git not installed)') : status.dirty}`);
+  if (!status.remote) console.log(color.dim('\n  add one: git remote add origin git@github.com:<you>/my-skills.git'));
+}
+
+/**
+ * `skillhub config <budget|requests> <value>` — the two knobs behind the cost
+ * projection.
+ *
+ * @param {string} hubDir
+ * @param {string[]} args
+ */
+function cmdConfig(hubDir, args) {
+  const [key, raw] = args;
+  if (!key || raw === undefined) {
+    const config = loadConfig(hubDir);
+    console.log(`budget    ${config.budget ?? color.dim('(default 2000)')}`);
+    console.log(`requests  ${config.dailyRequests ?? color.dim('(default 100)')}`);
+    return;
+  }
+
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) throw new Error(`not a positive number: ${raw}`);
+
+  if (key === 'budget') savePreferences(hubDir, { budget: value });
+  else if (key === 'requests') savePreferences(hubDir, { dailyRequests: value });
+  else throw new Error(`unknown setting: ${key} (use budget or requests)`);
+
+  console.log(`${color.green('✓')} ${key} = ${value}`);
 }
 
 /**
@@ -488,6 +562,8 @@ ${color.bold('COMMANDS')}
   show <skill>            print a skill's SKILL.md
   serve                   open the web console (default http://127.0.0.1:4711)
   mcp                     run as an MCP server over stdio
+  git [init|status]       turn the hub into a repository / show its state
+  config <key> [value]    read or set budget and daily requests
   doctor                  diagnose the hub, tools and links
 
 ${color.bold('OPTIONS')}

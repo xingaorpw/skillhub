@@ -11,17 +11,21 @@
 
 ```
 cli.js ─────────────┐
-                    ├── core/index.js ──┬── core/hub.js       (扫描 / 安装 / 删除 / 汇总)
+                    ├── core/index.js ──┬── core/hub.js       (扫描 / 安装 / 删除 / 汇总 / 偏好)
 server/http.js ─────┤                   ├── core/plan.js      (链接计划)
 server/api.js ──────┤                   ├── core/linker.js    (创建 / 安全移除链接)
 mcp/server.js ──────┘                   ├── core/tools.js     (工具注册表与探测)
                                         ├── core/installer.js (GitHub / 本地安装)
+                                        ├── core/importer.js  (拖拽上传)
+                                        ├── core/git.js       (仓库状态与初始化)
                                         ├── core/frontmatter.js
-                                        ├── core/tokens.js
+                                        ├── core/tokens.js    (估算 / 分档 / 预测)
                                         └── core/zip.js
 ```
 
 `core/index.js` 是唯一的公共门面。三个入口都不直接 `import` 内部模块，除了 `plan.js` 的 `countByAction`（纯函数）和 `tokens.js` 的格式化函数。
+
+`server/multipart.js` 只被 `http.js` 使用：它把浏览器上传的字节流切成 `{ name, filename, data }`，再由 `importer.js` 落到临时目录，之后走和 `add` 完全相同的 `discoverSkillDirs` → `installFromDir` 路径。**上传不是第二条安装通道，只是另一种取包方式。**
 
 ## 数据流：一次 `add`
 
@@ -51,12 +55,29 @@ applyPlan(plan, { dryRun })
 
 | 文件 | 内容 |
 | --- | --- |
-| `~/.skillhub/skillhub.json` | 上架名单 `shelf`、自定义工具 `tools`、来源 `sources` |
+| `~/.skillhub/skillhub.json` | 上架名单 `shelf`、预算 `budget`、每日请求数 `dailyRequests`、自定义工具 `tools`、来源 `sources` |
 | `~/.skillhub/<name>/SKILL.md` | 技能本体（每个技能一个目录） |
 
 `skillhub.json` 是唯一的可写状态，其它一切皆为普通文件。这让中心天然适合 `git`：diff 可读、冲突可解、回滚简单。
 
-`shelf: null` 表示「全部上架」，`shelf: []` 表示「全部下架」。用 `null` 而不是复制一份全量列表，是为了让新装的技能默认可见——大多数人装完就想用。
+`shelf: null` 表示「全部上架」，`shelf: []` 表示「全部下架」。用 `null` 而不是复制一份全量列表，是为了让新装的技能默认可见——大多数人装完就想用。当 `shelf` 是显式列表时，安装流程会把新技能追加进去（`addToShelf`），保持同一个直觉。
+
+## 成本模型
+
+```
+每轮目录开销 = Σ (name + description 的 token 估算)
+预算占比     = 每轮开销 / budget
+每日         = 每轮 × dailyRequests
+每月         = 每日 × 30
+```
+
+分档（`tierOf`）：`≤25` 轻、`≤60` 中、`≤120` 重、其余极重。分档只影响展示与颜色，不改变任何行为——它存在的意义是让「这个技能值不值」变成可比较的数字。
+
+`budgetState` 在 `≥80%` 返回 `warn`、`≥100%` 返回 `over`；控制台据此把预算条染黄/染红。没有配置预算时恒为 `ok`，不会用警告打扰第一次打开的人。
+
+## git 集成
+
+`git.js` 只做三件事：读状态（分支、remote、未提交数、提交数）、写 `.gitignore`、`git init` + 首提交。所有 `spawnSync` 都带超时，找不到 git 时返回 `{ ok: false, reason, next }` 并把要手敲的命令列出来——**没有 git 不是错误，只是少一个便利功能**。
 
 ## 链接策略
 
@@ -87,22 +108,27 @@ token 由服务启动时生成（或 `--token` / `SKILLHUB_TOKEN` 指定），�
 | --- | --- |
 | 支持一个新工具 | `src/core/tools.js` 的 `TOOL_REGISTRY` 加一行，或在 `skillhub.json` 里写 `tools` |
 | 换 token 估算方式 | `src/core/tokens.js`（保持 `estimateTokens` 签名） |
+| 调整分档阈值 | `src/core/tokens.js` 的 `TIERS` |
 | 加一个 CLI 命令 | `src/cli.js` 的 `switch` + 一个 `cmdXxx` 函数 |
 | 加一个 REST 接口 | `src/server/api.js` 的 `handleApi` |
 | 加一个 MCP 工具 | `src/mcp/server.js` 的 `TOOLS` + `callTool` |
-| 改控制台外观 | `web/styles.css` 的 CSS 变量（`--accent`、`--radius` 等） |
+| 加一个控制台视图 | `web/app.js` 的 `VIEWS` + 一个 `viewXxx()` 函数 |
+| 改控制台外观 | `web/styles.css` 的 CSS 变量（`--accent`、`--radius`、`--tier-*` 等） |
 
 ## 测试策略
 
 | 层 | 文件 | 覆盖 |
 | --- | --- | --- |
 | 单元 | `test/frontmatter.test.js` | frontmatter 解析/改写、折叠标量、CRLF |
-| 单元 | `test/tokens.test.js` | 估算的单调性、中英混合 |
+| 单元 | `test/tokens.test.js` | 估算的单调性、中英混合、分档、成本预测、预算状态 |
 | 单元 | `test/zip.test.js` | stored/deflate、目录穿越、非 zip |
 | 单元 | `test/linker.test.js` | 创建、移除、拒删真实目录、blocked/foreign |
 | 单元 | `test/hub.test.js` | 安装、列举、删除、配置往返、源解析 |
 | 单元 | `test/plan.test.js` | 计划生成、幂等、dry-run、冲突保护 |
 | 单元 | `test/tools.test.js` | 工具探测规则、显式列表覆盖、目录解析 |
+| 单元 | `test/git.test.js` | 状态读取、初始化幂等、无 git 时降级、remote 解析 |
+| 单元 | `test/importer.test.js` | 路径校验、嵌套技能、覆盖策略、无 SKILL.md |
+| 单元 | `test/multipart.test.js` | 字段/文件解析、二进制、CRLF、畸形边界 |
 | 单元 | `test/markdown.test.js` | 预览渲染：标题/列表/代码/表格/转义 |
-| 前端 | `test/web.test.js` | 用最小 DOM 桩真正执行 `web/app.js`，验证渲染与筛选 |
-| 端到端 | `scripts/smoke.js` | 真 CLI → 真链接 → 真 HTTP → 真 MCP 握手 |
+| 前端 | `test/web.test.js` | 用最小 DOM 桩真正执行 `web/app.js`：五个视图、筛选、开关、命令面板 |
+| 端到端 | `scripts/smoke.js` | 真 CLI → 真链接 → 真 HTTP → 真上传 → 真 git → 真 MCP 握手 |

@@ -65,9 +65,14 @@ export function loadConfig(hubDir) {
  */
 export function saveConfig(hubDir, config) {
   fs.mkdirSync(hubDir, { recursive: true });
+  const budget = Number(config.budget);
+  const dailyRequests = Number(config.dailyRequests);
   const ordered = {
     version: 1,
     shelf: config.shelf ?? null,
+    // Preferences are optional: keep them out of the file unless the user set them.
+    ...(Number.isFinite(budget) && budget > 0 ? { budget: Math.round(budget) } : {}),
+    ...(Number.isFinite(dailyRequests) && dailyRequests > 0 ? { dailyRequests: Math.round(dailyRequests) } : {}),
     tools: config.tools ?? [],
     sources: config.sources ?? {},
   };

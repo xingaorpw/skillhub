@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { estimateCatalogTokens, estimateTokens, formatTokens } from '../src/core/tokens.js';
+import { estimateCatalogTokens, estimateTokens, formatTokens, budgetState, projectUsage, tierOf } from '../src/core/tokens.js';
 
 test('empty input costs nothing', () => {
   assert.equal(estimateTokens(''), 0);
@@ -47,4 +47,36 @@ test('formats thousands compactly', () => {
   assert.equal(formatTokens(940), '940');
   assert.equal(formatTokens(1234), '1.2k');
   assert.equal(formatTokens(18_400), '18k');
+});
+
+test('tiers bucket skills by catalog cost', () => {
+  assert.equal(tierOf(0).id, 'light');
+  assert.equal(tierOf(25).id, 'light');
+  assert.equal(tierOf(26).id, 'normal');
+  assert.equal(tierOf(60).id, 'normal');
+  assert.equal(tierOf(61).id, 'heavy');
+  assert.equal(tierOf(120).id, 'heavy');
+  assert.equal(tierOf(121).id, 'extreme');
+  assert.ok(tierOf(500).hint.length > 0);
+});
+
+test('projects the cost over a day and a month', () => {
+  const projection = projectUsage({ visibleTokens: 1200, dailyRequests: 50 });
+  assert.equal(projection.perRequest, 1200);
+  assert.equal(projection.perDay, 60_000);
+  assert.equal(projection.perMonth, 1_800_000);
+});
+
+test('projection falls back to a sane request volume', () => {
+  const projection = projectUsage({ visibleTokens: 100, dailyRequests: 0 });
+  assert.equal(projection.perDay, 10_000); // default 100 requests/day
+});
+
+test('budget state flips at 80% and 100%', () => {
+  assert.equal(budgetState(500, 2000).state, 'ok');
+  assert.equal(budgetState(1600, 2000).state, 'warn');
+  assert.equal(budgetState(2000, 2000).state, 'over');
+  assert.equal(budgetState(2600, 2000).state, 'over');
+  assert.equal(budgetState(10, 0).state, 'ok'); // no budget configured
+  assert.equal(budgetState(500, 2000).ratio, 0.25);
 });

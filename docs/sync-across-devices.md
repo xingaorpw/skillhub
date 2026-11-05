@@ -8,13 +8,17 @@
 
 ```bash
 cd ~/.skillhub
-git init
-git add .
-git commit -m "chore: initial skills"
-
+skillhub git init      # = git init -b main + 写 .gitignore + 首次提交
+                       #   控制台「同步」页有同样的按钮
 # 在 GitHub 建一个空仓库（私有即可），然后
 git remote add origin git@github.com:you/my-skills.git
 git push -u origin main
+```
+
+不想用 CLI 也行，手敲等价命令：
+
+```bash
+git init -b main && git add . && git commit -m "chore: initial skills"
 ```
 
 ### 第二台机器

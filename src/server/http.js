@@ -13,7 +13,8 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ApiError, handleApi, publicState } from './api.js';
+import { ApiError, handleApi, importUpload, publicState } from './api.js';
+import { parseMultipart } from './multipart.js';
 import { getState } from '../core/index.js';
 import { formatTokens } from '../core/tokens.js';
 import { handleRpc } from '../mcp/server.js';
@@ -93,6 +94,18 @@ async function handleRequest(req, res, context) {
     return;
   }
 
+  if (pathname === '/api/import' && method === 'POST') {
+    if (!authorized(req, url, context.token)) {
+      sendJson(res, 401, { error: 'missing or invalid token' });
+      return;
+    }
+    const buffer = await readBody(req, 32 * 1024 * 1024);
+    const parts = parseMultipart(buffer, String(req.headers['content-type'] ?? ''));
+    const result = importUpload(parts, context.hubDir);
+    sendJson(res, 200, result);
+    return;
+  }
+
   if (pathname.startsWith('/api/')) {
     if (method !== 'GET' && !authorized(req, url, context.token)) {
       sendJson(res, 401, { error: 'missing or invalid token' });
@@ -137,6 +150,29 @@ function authorized(req, url, token) {
   const a = Buffer.from(String(provided));
   const b = Buffer.from(token);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * @param {http.IncomingMessage} req
+ * @param {number} limit
+ * @returns {Promise<Buffer>}
+ */
+function readBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        reject(new ApiError(413, `request body too large (limit ${Math.round(limit / 1024 / 1024)} MB)`));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
 }
 
 /**

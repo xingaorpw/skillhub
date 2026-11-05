@@ -120,6 +120,64 @@ try {
     assert.equal(fs.existsSync(path.join(toolPath, 'beta')), true);
   });
 
+  await step('the console can save a token budget', async () => {
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/api/preferences`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ budget: 1234, dailyRequests: 20 }),
+    });
+    const state = await response.json();
+    assert.equal(state.budget, 1234);
+    assert.equal(state.dailyRequests, 20);
+    assert.equal(state.projection.perDay, state.stats.visibleTokens * 20);
+  });
+
+  await step('drag-and-drop import installs a folder', async () => {
+    const { port } = server.address();
+    const form = new FormData();
+    form.append(
+      'files',
+      new Blob(['---\nname: gamma\ndescription: Imported over HTTP\n---\n\n# Gamma\n'], { type: 'text/markdown' }),
+      'gamma/SKILL.md',
+    );
+    form.append('files', new Blob(['# notes'], { type: 'text/markdown' }), 'gamma/notes.md');
+    form.append('overwrite', 'false');
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/import`, { method: 'POST', body: form });
+    assert.equal(response.status, 200);
+
+    const json = await response.json();
+    assert.deepEqual(json.installed.map((item) => item.name), ['gamma']);
+    assert.equal(fs.existsSync(path.join(hub, 'gamma', 'notes.md')), true);
+    assert.equal(fs.existsSync(path.join(toolPath, 'gamma')), true, 'import should link the new skill');
+    assert.ok(json.state.skills.some((skill) => skill.name === 'gamma'));
+  });
+
+  await step('git init turns the hub into a repository', async () => {
+    const { port } = server.address();
+    const response = await fetch(`http://127.0.0.1:${port}/api/git/init`, { method: 'POST' });
+    const json = await response.json();
+
+    assert.equal(fs.existsSync(path.join(hub, '.gitignore')), true);
+    if (json.ok) {
+      assert.equal(json.status.isRepo, true);
+      assert.equal(json.status.branch, 'main');
+      assert.equal(fs.existsSync(path.join(hub, '.git')), true);
+    } else {
+      assert.match(json.reason, /git/i, 'without git it should explain itself');
+    }
+  });
+
+  await step('cli config reads and writes the budget', () => {
+    cli(['config', 'budget', '3000']);
+    assert.match(cli(['config']), /budget\s+3000/);
+  });
+
+  await step('cli git status reports the repository', () => {
+    assert.match(cli(['git', 'status']), /repository|not a git repository/);
+  });
+
   await step('MCP over HTTP answers initialize', async () => {
     const { port } = server.address();
     const response = await fetch(`http://127.0.0.1:${port}/mcp`, {

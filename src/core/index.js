@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { installSource, parseSource, sourceLabel } from './installer.js';
+import { importFiles } from './importer.js';
 import { buildPlan, applyPlan, countByAction } from './plan.js';
 import {
   CONFIG_NAME,
@@ -21,6 +22,8 @@ import {
   summarize,
 } from './hub.js';
 import { detectTools, platformLabel, resolveDir, TOOL_REGISTRY } from './tools.js';
+import { findGit, gitInit, gitStatus } from './git.js';
+import { TIERS, projectUsage, tierOf } from './tokens.js';
 
 export {
   CONFIG_NAME,
@@ -35,6 +38,7 @@ export {
   installSource,
   parseSource,
   sourceLabel,
+  importFiles,
   buildPlan,
   applyPlan,
   countByAction,
@@ -42,6 +46,12 @@ export {
   platformLabel,
   resolveDir,
   TOOL_REGISTRY,
+  findGit,
+  gitInit,
+  gitStatus,
+  TIERS,
+  tierOf,
+  projectUsage,
 };
 
 export const DEFAULT_HUB = path.join(os.homedir(), '.skillhub');
@@ -67,6 +77,10 @@ export function resolveHubDir(explicit, cwd = process.cwd()) {
 /**
  * One call that answers "what does this hub look like right now?".
  *
+ * Includes the numbers the console needs to make cost tangible: the shelf's
+ * catalog cost, a projection over time, the most expensive skills, and the git
+ * state used by the sync panel.
+ *
  * @param {{ hubDir?: string, config?: any }} [options]
  */
 export function getState(options = {}) {
@@ -83,8 +97,30 @@ export function getState(options = {}) {
       }
     }).length,
   }));
+
   const shelf = config.shelf;
   const stats = summarize(skills, shelf);
+  const onShelf = (name) => shelf === null || shelf.includes(name);
+
+  const budget = Number(config.budget) > 0 ? Number(config.budget) : 2000;
+  const dailyRequests = Number(config.dailyRequests) > 0 ? Number(config.dailyRequests) : 100;
+
+  const spenders = [...skills]
+    .sort((a, b) => b.catalogTokens - a.catalogTokens || a.name.localeCompare(b.name))
+    .slice(0, 6)
+    .map((skill) => ({
+      name: skill.name,
+      catalogTokens: skill.catalogTokens,
+      tier: tierOf(skill.catalogTokens).id,
+      onShelf: onShelf(skill.name),
+    }));
+
+  const tiers = TIERS.map((tier) => ({
+    id: tier.id,
+    label: tier.label,
+    hint: tier.hint,
+    count: skills.filter((skill) => tierOf(skill.catalogTokens).id === tier.id).length,
+  }));
 
   return {
     hubDir,
@@ -95,7 +131,34 @@ export function getState(options = {}) {
     tools,
     stats,
     platform: platformLabel(),
+    budget,
+    dailyRequests,
+    projection: projectUsage({ visibleTokens: stats.visibleTokens, dailyRequests }),
+    savings: Math.max(0, stats.catalogTokens - stats.visibleTokens),
+    spenders,
+    tiers,
+    git: gitStatus(hubDir),
   };
+}
+
+/**
+ * Persist user preferences (budget + assumed request volume).
+ *
+ * @param {string} hubDir
+ * @param {{ budget?: number, dailyRequests?: number }} patch
+ */
+export function savePreferences(hubDir, patch) {
+  const config = loadConfig(hubDir);
+  if (patch.budget !== undefined) {
+    const value = Number(patch.budget);
+    config.budget = Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  }
+  if (patch.dailyRequests !== undefined) {
+    const value = Number(patch.dailyRequests);
+    config.dailyRequests = Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  }
+  saveConfig(hubDir, config);
+  return { budget: config.budget, dailyRequests: config.dailyRequests };
 }
 
 /**
@@ -144,6 +207,39 @@ export function enableAll(hubDir) {
   config.shelf = null;
   saveConfig(hubDir, config);
   return { shelf: null };
+}
+
+/**
+ * Add skills to a restricted shelf. When the shelf is `null` (everything is
+ * visible) this is a no-op, because the new skill is already visible.
+ *
+ * Installing a skill should make it usable immediately — otherwise the user has
+ * to find it and toggle it on, which reads like a bug.
+ *
+ * @param {string} hubDir
+ * @param {string[]} names
+ * @returns {string[] | null}
+ */
+export function addToShelf(hubDir, names) {
+  const config = loadConfig(hubDir);
+  if (config.shelf === null) return null;
+  const merged = [...new Set([...config.shelf, ...names])].sort();
+  config.shelf = merged;
+  saveConfig(hubDir, config);
+  return merged;
+}
+
+/**
+ * Take every skill off the shelf (`shelf: []`). Skills stay in the hub; only the
+ * links disappear.
+ *
+ * @param {string} hubDir
+ */
+export function disableAll(hubDir) {
+  const config = loadConfig(hubDir);
+  config.shelf = [];
+  saveConfig(hubDir, config);
+  return { shelf: [] };
 }
 
 /**

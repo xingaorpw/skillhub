@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b5bd6.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.17-3c873a.svg)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-5b5bd6.svg)](./package.json)
-[![Tests](https://img.shields.io/badge/tests-67%20passing-178f5a.svg)](./test)
+[![Tests](https://img.shields.io/badge/tests-101%20passing-178f5a.svg)](./test)
 
 </div>
 
@@ -34,8 +34,10 @@ SkillHub 把这些收敛成一个模型：
 | --- | --- |
 | 🗂 **单一来源** | 技能只存一份在 hub，工具目录里全是链接（Windows junction / POSIX symlink），改一次全局生效 |
 | 🎚 **上架 / 下架** | 技能留在中心但可以「下架」——链接消失、模型目录里不再出现，token 立刻省下来 |
-| 📊 **成本可见** | 每个技能标注目录开销（≈tokens），首页汇总「模型每轮要付多少」 |
-| 🖥 **可视化控制台** | 搜索、筛选、开关、看 SKILL.md、从 GitHub 一键安装，浅色/深色跟随系统 |
+| 📊 **成本可见** | 每个技能标注目录开销（≈tokens）；首页有预算条、每轮/每天/每月换算、最贵技能排行 |
+| 🖥 **可视化控制台** | 侧边栏五个视图、搜索筛选、网格/表格切换、SKILL.md 阅读器、`Ctrl K` 命令面板 |
+| 🖱 **拖拽导入** | 把技能文件夹直接拖进控制台，自动找到 `SKILL.md` 并安装（浏览器端上传，不需要命令行） |
+| 🔀 **同步面板** | 一键 `git init` + 首提交，界面直接给出「推到远端 / 另一台设备怎么接」的命令 |
 | 🔌 **MCP 服务** | `skillhub mcp` 把整个中心暴露给任何 MCP 客户端，远端设备/远端模型也能列技能、读技能、装技能 |
 | 📦 **一条命令安装** | `skillhub add owner/repo` 走 codeload 拉 zip，不需要 git、不需要 token、不占 API 限额 |
 | 🛡 **不误删** | 只删「自己创建的链接」，遇到手工装的真实目录会报 `blocked` 并跳过 |
@@ -45,7 +47,15 @@ SkillHub 把这些收敛成一个模型：
 
 ![SkillHub 控制台](./docs/screenshot.png)
 
-顶部是四项概览（技能总数 / 已上架 / 目录开销 / 已接入工具），中间是可搜索、可筛选的技能卡片，卡片上的开关直接控制上架状态，点卡片右侧滑出 SKILL.md 全文。浅色/深色跟随系统，也可以手动切换。
+控制台是「概览 / 技能 / 来源 / 同步 / 设置」五个视图：
+
+- **概览**：四项 KPI（技能总数、已上架、目录开销、接入工具）+ 预算条 + 构成环图 + 最贵技能排行 + 工具接入状态 + 同步卡片。
+- **技能**：搜索、按上架状态/斜杠命令筛选、按名称/开销/更新时间排序，网格或表格两种布局；卡片上的开关直接上架/下架，点卡片滑出 SKILL.md 全文。
+- **来源**：每个技能来自哪个仓库、什么时候装的。
+- **同步**：git 状态（分支、remote、未提交改动）与下一步命令，可一键初始化。
+- **设置**：目录预算、每日请求数、主题、批量上架/下架、重新应用链接。
+
+其它细节：`Ctrl/⌘ + K` 打开命令面板（可搜索技能、跳视图、执行动作）；`/` 聚焦搜索框；把文件夹拖到窗口任意位置即可导入；每次开关都有「撤销」；视图写在 URL hash 里（`#/skills`），可直接分享或刷新保持。浅色/深色跟随系统，也能手动切换。
 
 ## 工作原理
 
@@ -93,14 +103,14 @@ npx skillhub serve
 没有 npx？直接跑源码：
 
 ```bash
-git clone https://github.com/your-name/skillhub.git
+git clone https://github.com/Uxenq/skillhub.git
 cd skillhub
 node src/cli.js init
 node src/cli.js add mattpocock/skills
 node src/cli.js serve
 ```
 
-控制台里能看到：技能总数、已上架数量、**模型每轮要付的 token**、已接入的工具；点卡片看 SKILL.md 全文，拨开关即上架/下架，点「安装技能」填 `owner/repo` 就能装。
+控制台里能看到：技能总数、已上架数量、**模型每轮要付的 token**、已接入的工具；点卡片看 SKILL.md 全文，拨开关即上架/下架，点「安装技能」填 `owner/repo` 就能装，也可以把技能文件夹直接拖进窗口。
 
 ## 命令行
 
@@ -117,6 +127,8 @@ node src/cli.js serve
 | `skillhub show <名>` | 打印某个技能的 SKILL.md |
 | `skillhub serve [--port] [--host]` | 启动可视化控制台 + REST + MCP |
 | `skillhub mcp` | 以 MCP 服务（stdio）方式运行 |
+| `skillhub git [init\|status]` | 把中心变成 git 仓库 / 查看分支、remote、未提交改动 |
+| `skillhub config [budget\|requests] [值]` | 读取或设置目录预算与每日请求数（驱动成本预测） |
 | `skillhub doctor` | 自检：中心、工具、断链、冲突 |
 
 常用参数：`--hub <dir>`、`--tool <id,id>`、`--dry-run`、`--overwrite`、`--json`、`--verbose`。
@@ -161,11 +173,11 @@ curl -s http://192.168.1.10:4711/mcp \
 
 ## 跨设备同步
 
-中心就是一个普通文件夹 + 一个 `skillhub.json`，所以**用 git 同步**就是最自然的做法：
+中心就是一个普通文件夹 + 一个 `skillhub.json`，所以**用 git 同步**就是最自然的做法。控制台的「同步」页可以一键完成前两步：
 
 ```bash
+skillhub git init       # git init -b main + .gitignore + 首次提交
 cd ~/.skillhub
-git init && git add . && git commit -m "my skills"
 git remote add origin git@github.com:you/my-skills.git
 git push -u origin main
 ```
@@ -193,7 +205,14 @@ agent 工具每轮都会注入「技能名 + description」。SkillHub 把这件
 2. **短描述**：description 保留触发词，砍掉长篇解释（`skillhub list` 会标出每个技能多贵）；
 3. **斜杠命令**：`disable-model-invocation: true` 的技能不进模型目录，零成本，只能手动 `/调用`。
 
-实测参考：168 个技能 ≈ 15.9k 字符 ≈ 1 万 tokens；压到 40 个可见 + 短描述 ≈ 1.1k 字符 ≈ **757 tokens（−93%）**。
+控制台把这套数字变成可读的仪表：
+
+- **预算条**：默认 2000 tokens，超过 80% 变黄、100% 变红；预算和每日请求数可在「设置」或 `skillhub config budget 1500` 改。
+- **成本预测**：每轮 / 每天（默认 100 轮）/ 每月（30 天）三档换算，把「每轮 1.3k」翻译成「每月 ≈390 万」。
+- **分档**：每个技能按目录开销分成 轻 / 中 / 重 / 极重 四档，最贵的那几个一眼就能看到（实测 168 个技能里有一个 205 tokens 的「极重」技能）。
+- **节省量**：下架技能后，界面直接显示「每轮可省 ≈2010 tokens」。
+
+实测参考：168 个技能 ≈ 15.9k 字符 ≈ 1 万 tokens；压到 56 个可见 + 短描述 ≈ 1.3k tokens（**−93%**）。
 
 ## 安全模型
 
@@ -201,6 +220,7 @@ agent 工具每轮都会注入「技能名 + description」。SkillHub 把这件
 - **只删自己建的东西**。`removeLink` 先 `lstat`，不是链接就拒绝；真实目录一律报 `blocked` 并保留。
 - **不跟随链接递归删除**。这是 PowerShell `Remove-Item -Recurse` 会把目标一起删掉的经典坑，本项目用 `rmdir`（Windows）/ `unlink`（POSIX）精确移除链接本身。
 - **解压防穿越**。zip 条目解析后校验目标路径必须落在解压目录内。
+- **上传防穿越**。拖拽上传的每个文件路径都会校验（拒绝 `..`、盘符、绝对路径），先落到临时目录，再走和 `skillhub add` 完全相同的安装逻辑。
 - **安装来源可审计**。`skillhub.json` 记录每个技能来自哪个仓库、什么时候装的。
 
 ## 目录结构
@@ -211,17 +231,26 @@ skillhub/
 │   ├── cli.js                 # 命令入口
 │   ├── core/
 │   │   ├── frontmatter.js     # SKILL.md 的 YAML frontmatter 读写
-│   │   ├── hub.js             # 中心：扫描、安装、删除、汇总
+│   │   ├── hub.js             # 中心：扫描、安装、删除、汇总、偏好
 │   │   ├── installer.js       # GitHub / 本地安装
+│   │   ├── importer.js        # 拖拽上传：重建目录树后走同一条安装路径
+│   │   ├── git.js             # git 状态与一键初始化（缺失时优雅降级）
 │   │   ├── linker.js          # 链接创建与安全移除
 │   │   ├── plan.js            # 链接计划（先算后做，支持 dry-run）
 │   │   ├── tools.js           # 各 AI 工具的技能目录注册表
-│   │   ├── tokens.js          # token 估算
+│   │   ├── tokens.js          # token 估算、分档、成本预测
 │   │   └── zip.js             # 极简 zip 解压
-│   ├── server/                # REST API + 静态站点
+│   ├── server/
+│   │   ├── api.js             # REST 路由
+│   │   ├── http.js            # 静态站点 + REST + MCP over HTTP
+│   │   └── multipart.js       # 极简 multipart 解析（拖拽上传用）
 │   └── mcp/server.js          # MCP（stdio + HTTP）
 ├── web/                       # 控制台（原生 HTML/CSS/JS，无构建）
-├── test/                      # node:test 单元测试
+│   ├── index.html             # 应用外壳：侧边栏 + 顶栏 + 抽屉 + 弹窗
+│   ├── styles.css             # 设计变量、亮/暗主题、全部组件
+│   ├── app.js                 # 状态 → 视图，命令面板、拖拽、撤销
+│   └── markdown.js            # SKILL.md 渲染（转义 HTML）
+├── test/                      # node:test 单元测试（101 个）
 ├── scripts/                   # check.js（自检）、smoke.js（端到端）
 └── docs/                      # 架构、工具矩阵、跨设备同步
 ```
@@ -253,16 +282,24 @@ skillhub/
 </details>
 
 <details>
-<summary><b>为什么不做成 npm 包？</b></summary>
+<summary><b>可以 npm 安装 / 发布吗？</b></summary>
 
-可以，但当前形态对使用者更省事：没有构建、没有依赖、`node src/cli.js` 直接跑。`package.json` 里已经声明了 `bin`，想 `npm i -g .` 也支持。
+可以。包已经按发布标准准备好（`bin`、`files`、`engines`、`exports`、MIT 许可、`publishConfig`）：
+
+```bash
+npm i -g skillhub     # 装完后全局可用 skillhub 命令
+npm pack --dry-run    # 看会打包哪些文件
+npm publish           # 发布（需要先 npm login）
+```
+
+不想发布也可以 `npm i -g .` 在本机安装。
 </details>
 
 ## 开发
 
 ```bash
-npm test        # 67 个单元测试（node:test，无框架）
-npm run smoke   # 13 项端到端检查：CLI → 链接 → 服务 → MCP 握手
+npm test        # 101 个单元测试（node:test，无框架）
+npm run smoke   # 18 项端到端检查：CLI → 链接 → 服务 → 上传 → git → MCP 握手
 npm run check   # 语法、web 资源、package 元信息、README 链接自检
 ```
 

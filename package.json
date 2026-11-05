@@ -1,6 +1,6 @@
 {
   "name": "skillhub",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One skill hub for every AI tool on every device — install a SKILL.md pack once, share it everywhere, manage it from a clean web console.",
   "type": "module",
   "bin": {
@@ -37,15 +37,21 @@
     "codex",
     "cursor",
     "llm",
-    "tooling"
+    "tooling",
+    "skills-manager",
+    "prompt-engineering",
+    "context-window"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-name/skillhub.git"
+    "url": "git+https://github.com/Uxenq/skillhub.git"
   },
   "bugs": {
-    "url": "https://github.com/your-name/skillhub/issues"
+    "url": "https://github.com/Uxenq/skillhub/issues"
   },
-  "homepage": "https://github.com/your-name/skillhub#readme"
+  "homepage": "https://github.com/Uxenq/skillhub#readme"
 }
