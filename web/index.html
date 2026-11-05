@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkillHub · 技能中心</title>
+    <meta name="description" content="一个技能中心，所有 AI 工具共用同一份 skill。" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2.6 3.4 7v10L12 21.4 20.6 17V7L12 2.6Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+          <path d="M12 7.2 7.4 9.6v4.8L12 16.8l4.6-2.4V9.6L12 7.2Z" fill="currentColor" opacity=".22" />
+          <circle cx="12" cy="12" r="1.7" fill="currentColor" />
+        </svg>
+        <div class="brand-text">
+          <strong>SkillHub</strong>
+          <span class="version" id="version"></span>
+        </div>
+      </div>
+
+      <div class="hub-path" id="hubPath" title="技能中心目录"></div>
+
+      <div class="topbar-actions">
+        <button class="btn ghost" id="themeBtn" title="切换主题" aria-label="切换主题">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.4 1.4m10 10 1.4 1.4m0-12.8-1.4 1.4m-10 10-1.4 1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none" />
+            <circle cx="12" cy="12" r="3.6" stroke="currentColor" stroke-width="1.6" fill="none" />
+          </svg>
+        </button>
+        <button class="btn primary" id="installBtn">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M12 5v10m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+          安装技能
+        </button>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="stats" id="stats" aria-label="概览">
+        <div class="stat">
+          <span class="stat-label">技能总数</span>
+          <strong class="stat-value" id="statTotal">—</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">已上架</span>
+          <strong class="stat-value" id="statShelf">—</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label">目录开销</span>
+          <strong class="stat-value" id="statTokens">—</strong>
+          <span class="stat-hint" id="statTokensHint"></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">已接入工具</span>
+          <strong class="stat-value" id="statTools">—</strong>
+          <span class="stat-hint" id="statToolsHint"></span>
+        </div>
+      </section>
+
+      <section class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.7" fill="none" />
+            <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          </svg>
+          <input id="search" type="search" placeholder="搜索技能名或描述…  ( / 聚焦 )" autocomplete="off" />
+        </div>
+
+        <div class="segmented" id="filters" role="tablist" aria-label="筛选">
+          <button class="seg is-active" data-filter="all" role="tab">全部</button>
+          <button class="seg" data-filter="on" role="tab">已上架</button>
+          <button class="seg" data-filter="off" role="tab">未上架</button>
+          <button class="seg" data-filter="slash" role="tab">斜杠命令</button>
+        </div>
+
+        <div class="toolbar-actions">
+          <button class="btn ghost" id="linkBtn" title="把中心里的技能同步成各工具的链接">应用链接</button>
+          <button class="btn ghost" id="allBtn" title="把所有技能都上架（目录开销会变大）">全部上架</button>
+        </div>
+      </section>
+
+      <section class="grid" id="grid" aria-live="polite"></section>
+
+      <section class="empty" id="empty" hidden>
+        <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+          <path d="M12 3.2 4.6 7v9.6L12 20.8l7.4-4.2V7L12 3.2Z" stroke="currentColor" stroke-width="1.3" fill="none" />
+        </svg>
+        <h2>还没有技能</h2>
+        <p>从 GitHub 安装一个技能包，或者把已有的技能文件夹拖进来。</p>
+        <button class="btn primary" id="emptyInstall">安装第一个技能</button>
+      </section>
+
+      <footer class="foot">
+        <span id="footInfo"></span>
+        <span class="dot">·</span>
+        <a href="https://github.com/your-name/skillhub" target="_blank" rel="noreferrer">GitHub</a>
+        <span class="dot">·</span>
+        <a href="/api/state" target="_blank">API</a>
+      </footer>
+    </main>
+
+    <aside class="drawer" id="drawer" aria-hidden="true" aria-label="技能详情">
+      <div class="drawer-head">
+        <div>
+          <h2 id="drawerName"></h2>
+          <p id="drawerDesc" class="drawer-desc"></p>
+        </div>
+        <button class="icon-btn" id="drawerClose" aria-label="关闭">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="drawer-meta" id="drawerMeta"></div>
+      <div class="drawer-body markdown" id="drawerBody"></div>
+      <div class="drawer-foot">
+        <button class="btn ghost" id="drawerCopy">复制路径</button>
+        <button class="btn danger ghost" id="drawerDelete">从中心删除</button>
+        <button class="btn primary" id="drawerToggle">上架</button>
+      </div>
+    </aside>
+
+    <dialog class="modal" id="installModal">
+      <form method="dialog" id="installForm">
+        <h2>安装技能</h2>
+        <p class="modal-hint">支持 <code>owner/repo</code>、GitHub 链接（可带 <code>/tree/分支/子目录</code>），或本机文件夹路径。</p>
+        <input id="installInput" type="text" placeholder="mattpocock/skills" autocomplete="off" spellcheck="false" />
+        <label class="check">
+          <input type="checkbox" id="installOverwrite" />
+          <span>覆盖同名技能</span>
+        </label>
+        <div class="modal-actions">
+          <button class="btn ghost" value="cancel" type="submit" formnovalidate>取消</button>
+          <button class="btn primary" id="installSubmit" value="ok" type="submit">开始安装</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

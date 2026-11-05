@@ -1,0 +1,76 @@
+name: Bug 报告
+description: 报告一个可复现的问题
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请先跑一遍 `skillhub doctor`，它的输出通常能直接定位问题。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 实际行为与期望行为的差异
+      placeholder: 执行 skillhub link 后，~/.claude/skills/tdd 没有被创建
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. skillhub init
+        2. skillhub add owner/repo
+        3. skillhub link
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: skillhub doctor 输出
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: skillhub --version 的输出
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - WSL
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node 版本
+      description: node --version
+      placeholder: v22.11.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他信息
+      description: 日志、截图、相关工具版本
+    validations:
+      required: false

@@ -1,0 +1,51 @@
+{
+  "name": "skillhub",
+  "version": "0.1.0",
+  "description": "One skill hub for every AI tool on every device — install a SKILL.md pack once, share it everywhere, manage it from a clean web console.",
+  "type": "module",
+  "bin": {
+    "skillhub": "./src/cli.js"
+  },
+  "main": "./src/core/index.js",
+  "exports": {
+    ".": "./src/core/index.js"
+  },
+  "files": [
+    "src",
+    "web",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node src/cli.js serve",
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "node scripts/check.js",
+    "smoke": "node scripts/smoke.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "skills",
+    "skill-md",
+    "mcp",
+    "claude-code",
+    "codex",
+    "cursor",
+    "llm",
+    "tooling"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-name/skillhub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-name/skillhub/issues"
+  },
+  "homepage": "https://github.com/your-name/skillhub#readme"
+}
