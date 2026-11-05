@@ -18,6 +18,7 @@ import {
   loadConfig,
   readSkill,
   removeSkill,
+  resolveSkillDir,
   saveConfig,
   summarize,
 } from './hub.js';
@@ -33,6 +34,7 @@ export {
   loadConfig,
   readSkill,
   removeSkill,
+  resolveSkillDir,
   saveConfig,
   summarize,
   installSource,

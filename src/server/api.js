@@ -6,6 +6,8 @@
  */
 
 import fs from 'node:fs';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
 
 import {
   addToShelf,
@@ -20,6 +22,7 @@ import {
   linkAll,
   readSkill,
   removeSkill,
+  resolveSkillDir,
   savePreferences,
   tierOf,
 } from '../core/index.js';
@@ -43,11 +46,12 @@ export class ApiError extends Error {
  *   method: string,
  *   pathname: string,
  *   body: any,
- *   hubDir: string
+ *   hubDir: string,
+ *   allowOpen?: boolean
  * }} request
  * @returns {Promise<{ status: number, json: any }>}
  */
-export async function handleApi({ method, pathname, body, hubDir }) {
+export async function handleApi({ method, pathname, body, hubDir, allowOpen = false }) {
   const route = `${method.toUpperCase()} ${pathname}`;
 
   if (route === 'GET /api/state') {
@@ -63,6 +67,17 @@ export async function handleApi({ method, pathname, body, hubDir }) {
         pending: plan.items.filter((item) => item.action === 'create' || item.action === 'remove'),
       },
     };
+  }
+
+  if (route === 'POST /api/reveal') {
+    let target;
+    try {
+      target = revealTarget(hubDir, body?.skill ? String(body.skill) : null);
+    } catch (error) {
+      throw new ApiError(400, error.message);
+    }
+    const opened = allowOpen ? openInFileManager(target) : false;
+    return { status: 200, json: { path: target, opened } };
   }
 
   const skillMatch = /^\/api\/skills\/([^/]+)(?:\/(enable|disable|remove))?$/.exec(pathname);
@@ -168,6 +183,38 @@ export function importUpload(parts, hubDir) {
   addToShelf(hubDir, installed.map((item) => item.name));
   linkAll({ hubDir });
   return { installed, state: publicState(getState({ hubDir })) };
+}
+
+/**
+ * Where "打开目录" should point: the hub itself, or one validated skill folder.
+ *
+ * @param {string} hubDir
+ * @param {string | null} skill
+ * @returns {string}
+ */
+export function revealTarget(hubDir, skill) {
+  if (!skill) return path.resolve(hubDir);
+  return resolveSkillDir(hubDir, skill);
+}
+
+/**
+ * Hand a folder to the OS file manager. Fire and forget: `explorer.exe` exits
+ * with 1 even on success, so we never look at the exit code.
+ *
+ * @param {string} target
+ * @returns {boolean}
+ */
+export function openInFileManager(target) {
+  const command =
+    process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  try {
+    const child = spawn(command, [target], { detached: true, stdio: 'ignore' });
+    child.on('error', () => {});
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

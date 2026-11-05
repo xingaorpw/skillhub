@@ -149,8 +149,8 @@ function render() {
 
   el('version').textContent = `v${state.version ?? '0.0.0'}`;
   el('footPlatform').textContent = state.platform.split(' · ')[0];
-  el('footHub').textContent = state.hubDir;
-  el('footHub').title = state.hubDir;
+  el('footHubPath').textContent = state.hubDir;
+  el('footHub').title = `在文件管理器中打开 ${state.hubDir}`;
 
   renderNav();
   renderView();
@@ -243,6 +243,12 @@ function viewDashboard() {
         h('button', { class: 'btn ghost sm', onclick: applyLinks }, icon('refresh', 14), '应用链接'),
         h('button', { class: 'btn ghost sm', onclick: putAllOnShelf }, '全部上架'),
       ),
+    ),
+
+    h('button', { class: 'path-chip', onclick: () => reveal(), title: '在文件管理器中打开总目录' },
+      icon('folder', 14),
+      h('span', { class: 'path-chip-text' }, state.hubDir),
+      h('span', { class: 'path-chip-action' }, '打开目录'),
     ),
 
     h('div', { class: 'grid-kpi' },
@@ -814,6 +820,10 @@ function viewSettings() {
           h('span', { class: 'badge' }, `${state.tools.length} 个工具`),
         ),
         h('p', { class: 'budget-note' }, h('code', {}, state.hubDir)),
+        h('div', { class: 'row mt-12' },
+          h('button', { class: 'btn ghost sm', onclick: () => reveal() }, icon('folder', 14), '打开总目录'),
+          h('button', { class: 'btn ghost sm', onclick: () => copyText(state.hubDir) }, icon('copy', 14), '复制路径'),
+        ),
       ),
     ),
   ];
@@ -859,6 +869,39 @@ function showUndo(name, on) {
       }
     },
   });
+}
+
+/**
+ * @param {string} text
+ */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`已复制：${text}`);
+  } catch {
+    toast(text);
+  }
+}
+
+/**
+ * Open the hub — or one skill folder — in the OS file manager.
+ *
+ * The server only does this for loopback clients; when the console is exposed on
+ * the LAN it returns `opened: false` and we fall back to copying the path.
+ *
+ * @param {string | null} [skill]
+ */
+async function reveal(skill = null) {
+  try {
+    const result = await api('/api/reveal', { method: 'POST', body: JSON.stringify({ skill }) });
+    if (result.opened) {
+      toast(`已打开 ${result.path}`);
+      return;
+    }
+    await copyText(result.path);
+  } catch (error) {
+    toast(`打不开：${error.message}`, true);
+  }
 }
 
 async function applyLinks() {
@@ -965,6 +1008,14 @@ async function openDrawer(name) {
             meta.source ? h('span', { class: 'chip' }, meta.source) : null,
           ]
         : []),
+    );
+
+    el('drawerMeta').append(
+      h('button', {
+        class: 'chip path',
+        title: '在文件管理器中打开这个技能的目录',
+        onclick: () => reveal(skill.name),
+      }, skill.path),
     );
 
     el('drawerToggle').textContent = meta?.onShelf ? '下架' : '上架';
@@ -1179,6 +1230,7 @@ async function uploadDropped(files) {
 /* ------------------------------------------------------------------ wiring */
 
 el('cmdkTrigger').addEventListener('click', openPalette);
+el('footHub').addEventListener('click', () => reveal());
 el('themeBtn').addEventListener('click', () => {
   const root = document.documentElement;
   const order = ['auto', 'light', 'dark'];
@@ -1217,12 +1269,7 @@ el('drawerToggle').addEventListener('click', async () => {
 });
 el('drawerCopy').addEventListener('click', async () => {
   if (!currentSkill) return;
-  try {
-    await navigator.clipboard.writeText(currentSkill.path);
-    toast('路径已复制');
-  } catch {
-    toast(currentSkill.path);
-  }
+  await copyText(currentSkill.path);
 });
 el('drawerDelete').addEventListener('click', deleteCurrent);
 

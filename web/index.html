@@ -24,8 +24,16 @@
         <nav class="nav" id="nav" aria-label="主导航"></nav>
 
         <div class="sidebar-foot">
-          <div class="foot-line" id="footPlatform">—</div>
-          <div class="foot-line muted" id="footHub">—</div>
+          <button class="foot-hub" id="footHub" title="在文件管理器中打开总目录">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h3.6l1.7 2H19a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5v-9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+            <span class="foot-hub-body">
+              <span class="foot-hub-label">总目录</span>
+              <span class="foot-hub-path" id="footHubPath">—</span>
+            </span>
+          </button>
+          <div class="foot-line muted" id="footPlatform">—</div>
         </div>
       </aside>
 

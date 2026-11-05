@@ -311,6 +311,11 @@ function makeFetch(initial) {
     }
 
     if (path.endsWith('/api/link')) return jsonResponse({ created: 0, removed: 0, failed: [], state: current });
+    if (path.endsWith('/api/reveal')) {
+      const body = options.body ? JSON.parse(options.body) : {};
+      const target = body.skill ? `${current.hubDir}/${body.skill}` : current.hubDir;
+      return jsonResponse({ path: target, opened: false });
+    }
     if (path.endsWith('/api/preferences')) return jsonResponse(current);
     if (path.endsWith('/api/git/init')) return jsonResponse({ ok: true, state: current, next: [] });
 
@@ -401,7 +406,16 @@ test('dashboard renders KPI cards and the budget meter', async () => {
   assert.match(content.querySelector('.meter-fill').style.width, /%$/);
   assert.equal(content.querySelectorAll('.rank-row').length, 2);
   assert.equal(content.querySelectorAll('.tool-row').length, 1);
-  assert.match(document.getElementById('footHub').textContent, /skillhub$/);
+  assert.match(document.getElementById('footHubPath').textContent, /skillhub$/);
+});
+
+test('the hub folder is visible and clickable from the sidebar', async () => {
+  const { document } = await boot('hub-path');
+  assert.equal(document.getElementById('footHubPath').textContent, '/home/u/.skillhub');
+
+  document.getElementById('footHub').dispatch('click', { target: document.getElementById('footHub') });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.match(document.getElementById('toast').textContent, /\.skillhub/);
 });
 
 test('the sidebar lists every view with a skill count', async () => {

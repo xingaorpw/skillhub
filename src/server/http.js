@@ -112,7 +112,15 @@ async function handleRequest(req, res, context) {
       return;
     }
     const body = method === 'GET' ? null : await readJson(req);
-    const { status, json } = await handleApi({ method, pathname, body, hubDir: context.hubDir });
+    const { status, json } = await handleApi({
+      method,
+      pathname,
+      body,
+      hubDir: context.hubDir,
+      // Opening a folder is a local convenience only: a remote client must never
+      // be able to make this machine pop up windows.
+      allowOpen: isLoopback(req),
+    });
     sendJson(res, status, json);
     return;
   }
@@ -135,6 +143,15 @@ async function handleRequest(req, res, context) {
   }
 
   sendJson(res, 404, { error: 'not found' });
+}
+
+/**
+ * @param {http.IncomingMessage} req
+ * @returns {boolean}
+ */
+function isLoopback(req) {
+  const address = req.socket?.remoteAddress ?? '';
+  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
 }
 
 /**
