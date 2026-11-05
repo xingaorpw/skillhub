@@ -104,6 +104,25 @@ test('config round-trips the shelf and sources', () => {
   assert.equal(reloaded.sources['owner/repo'].source, 'owner/repo');
 });
 
+test('a BOM in skillhub.json does not wipe the config', () => {
+  const hub = tempHub();
+  ensureHub(hub);
+
+  const config = {
+    version: 1,
+    shelf: ['alpha'],
+    tools: [{ id: 'demo', label: 'Demo', dir: path.join(hub, 'demo-skills'), create: true }],
+    sources: {},
+  };
+  // PowerShell's Set-Content and Notepad both like to prepend a BOM.
+  fs.writeFileSync(path.join(hub, 'skillhub.json'), `\uFEFF${JSON.stringify(config, null, 2)}`, 'utf8');
+
+  const loaded = loadConfig(hub);
+  assert.deepEqual(loaded.shelf, ['alpha']);
+  assert.equal(loaded.tools.length, 1);
+  assert.equal(loaded.tools[0].id, 'demo');
+});
+
 test('summarize counts what the model actually pays for', () => {
   const hub = tempHub();
   ensureHub(hub);

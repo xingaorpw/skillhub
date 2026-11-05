@@ -46,12 +46,16 @@ export function loadConfig(hubDir) {
   const file = configPath(hubDir);
   const base = { version: 1, shelf: null, tools: [], sources: {} };
   try {
-    const raw = fs.readFileSync(file, 'utf8');
+    // Windows editors (Notepad, PowerShell's Set-Content) happily prepend a BOM,
+    // and JSON.parse rejects it. Strip it so a hand-edited config is not silently
+    // ignored — which used to look like "my tools setting does nothing".
+    const raw = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
     const parsed = JSON.parse(raw);
     return {
       ...base,
       ...parsed,
       shelf: Array.isArray(parsed.shelf) ? parsed.shelf : null,
+      tools: Array.isArray(parsed.tools) ? parsed.tools : [],
       sources: parsed.sources && typeof parsed.sources === 'object' ? parsed.sources : {},
     };
   } catch {
