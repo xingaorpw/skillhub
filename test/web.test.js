@@ -406,6 +406,8 @@ test('dashboard renders KPI cards and the budget meter', async () => {
   assert.match(content.querySelector('.meter-fill').style.width, /%$/);
   assert.equal(content.querySelectorAll('.rank-row').length, 2);
   assert.equal(content.querySelectorAll('.tool-row').length, 1);
+  assert.equal(content.querySelectorAll('.index-chip').length, 2, 'every skill must be listed on the dashboard');
+  assert.equal(content.querySelectorAll('.index-chip.is-off').length, 1);
   assert.match(document.getElementById('footHubPath').textContent, /skillhub$/);
 });
 

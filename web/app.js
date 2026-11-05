@@ -111,7 +111,7 @@ let undoTimer = null;
 
 const VIEWS = [
   { id: 'dashboard', label: '概览', icon: 'grid' },
-  { id: 'skills', label: '技能', icon: 'layers' },
+  { id: 'skills', label: '全部技能', icon: 'layers' },
   { id: 'sources', label: '来源', icon: 'folder' },
   { id: 'sync', label: '同步', icon: 'git' },
   { id: 'settings', label: '设置', icon: 'sliders' },
@@ -258,6 +258,8 @@ function viewDashboard() {
       kpi('已接入工具', String(state.tools.length), state.tools.map((tool) => tool.label).join(' · ') || '未检测到'),
     ),
 
+    allSkillsCard(),
+
     h('div', { class: 'grid-2' },
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
@@ -319,6 +321,49 @@ function viewDashboard() {
 
     syncPanel(),
   ];
+}
+
+/**
+ * Every skill, on one screen. The dashboard used to show only the six most
+ * expensive skills, which reads like "my other skills are missing".
+ */
+function allSkillsCard() {
+  if (!state.skills.length) {
+    return h('section', { class: 'card' },
+      h('div', { class: 'card-head' }, h('h2', { class: 'card-title' }, '全部技能 · 0')),
+      h('div', { class: 'card-body' },
+        h('div', { class: 'empty' },
+          icon('layers', 28),
+          h('h2', {}, '这个中心里还没有技能'),
+          h('p', {}, `当前中心：${state.hubDir}`),
+          h('p', {}, '如果技能装在别的目录，启动时用 --hub 指过去：skillhub serve --hub <目录>'),
+          h('button', { class: 'btn primary', onclick: () => el('installBtn').click() }, icon('plus', 14), '安装技能'),
+        ),
+      ),
+    );
+  }
+
+  const names = [...state.skills].sort((a, b) => a.name.localeCompare(b.name));
+  const onShelf = names.filter((skill) => skill.onShelf).length;
+
+  return h('section', { class: 'card' },
+    h('div', { class: 'card-head' },
+      h('h2', { class: 'card-title' }, `全部技能 · ${names.length}`),
+      h('span', { class: 'card-hint' }, `${onShelf} 个已上架，虚线为未上架 · 点击查看`),
+      h('button', { class: 'btn ghost sm', onclick: () => setView('skills') }, '完整列表', icon('arrow', 13)),
+    ),
+    h('div', { class: 'card-body' },
+      h('div', { class: 'skill-index' },
+        ...names.map((skill) =>
+          h('button', {
+            class: `index-chip${skill.onShelf ? '' : ' is-off'}`,
+            title: `${skill.name} · ≈${skill.catalogTokens} tokens · ${skill.onShelf ? '已上架' : '未上架'}`,
+            onclick: () => openDrawer(skill.name),
+          }, skill.name),
+        ),
+      ),
+    ),
+  );
 }
 
 /**

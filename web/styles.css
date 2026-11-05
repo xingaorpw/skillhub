@@ -1188,6 +1188,35 @@ kbd {
   font-weight: 550;
 }
 
+.skill-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.index-chip {
+  font-size: 11.5px;
+  line-height: 1.7;
+  padding: 2px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: border-color 0.13s ease, color 0.13s ease, background 0.13s ease;
+}
+
+.index-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.index-chip.is-off {
+  border-style: dashed;
+  opacity: 0.62;
+}
+
 /* --------------------------------------------------------------- table */
 .table {
   width: 100%;

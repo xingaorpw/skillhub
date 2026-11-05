@@ -315,6 +315,16 @@ async function cmdServe(hubDir, flags) {
   const { startServer } = await import('./server/http.js');
   const port = Number(flags.port ?? process.env.SKILLHUB_PORT ?? 4711);
   const host = String(flags.host ?? '127.0.0.1');
+
+  // An empty hub looks like a broken console, so say it out loud before serving.
+  const skills = listSkills(hubDir);
+  if (skills.length === 0) {
+    console.log(`${color.yellow('!')} no skills found in ${hubDir}`);
+    console.log(color.dim('  if your skills live elsewhere, point at them: skillhub serve --hub <dir>'));
+    console.log(color.dim('  or install one first: skillhub add owner/repo'));
+    console.log('');
+  }
+
   await startServer({ hubDir, port, host, open: Boolean(flags.open) });
 }
 
