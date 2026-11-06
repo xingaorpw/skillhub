@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-06
+
 ### Added
 
 - **预算规划器**：`skillhub tune [--budget N] [--apply]` 与控制台「预算规划」卡片。
@@ -67,6 +69,7 @@
 - **自检**：`skillhub doctor` 检查中心、工具、断链与冲突；`scripts/check.js` 做语法与元信息自检。
 - **测试**：67 个 `node:test` 单元测试（含前端 DOM 渲染测试）+ 13 项端到端冒烟检查。
 
-[Unreleased]: https://github.com/xingaorpw/skillhub/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/xingaorpw/skillhub/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.3.0
 [0.2.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.2.0
 [0.1.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.1.0

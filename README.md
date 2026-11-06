@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b5bd6.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.17-3c873a.svg)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-5b5bd6.svg)](./package.json)
-[![Tests](https://img.shields.io/badge/tests-112%20passing-178f5a.svg)](./test)
+[![Tests](https://img.shields.io/badge/tests-124%20passing-178f5a.svg)](./test)
 [![Maintained](https://img.shields.io/badge/maintained-weekly-d97706.svg)](./docs/maintenance.md)
 
 </div>
