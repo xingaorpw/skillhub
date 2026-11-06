@@ -123,12 +123,13 @@ token 由服务启动时生成（或 `--token` / `SKILLHUB_TOKEN` 指定），�
 | 单元 | `test/tokens.test.js` | 估算的单调性、中英混合、分档、成本预测、预算状态 |
 | 单元 | `test/zip.test.js` | stored/deflate、目录穿越、非 zip |
 | 单元 | `test/linker.test.js` | 创建、移除、拒删真实目录、blocked/foreign |
-| 单元 | `test/hub.test.js` | 安装、列举、删除、配置往返、源解析 |
+| 单元 | `test/hub.test.js` | 安装、列举、删除、配置往返、BOM 容错、源解析 |
 | 单元 | `test/plan.test.js` | 计划生成、幂等、dry-run、冲突保护 |
 | 单元 | `test/tools.test.js` | 工具探测规则、显式列表覆盖、目录解析 |
 | 单元 | `test/git.test.js` | 状态读取、初始化幂等、无 git 时降级、remote 解析 |
 | 单元 | `test/importer.test.js` | 路径校验、嵌套技能、覆盖策略、无 SKILL.md |
 | 单元 | `test/multipart.test.js` | 字段/文件解析、二进制、CRLF、畸形边界 |
 | 单元 | `test/markdown.test.js` | 预览渲染：标题/列表/代码/表格/转义 |
-| 前端 | `test/web.test.js` | 用最小 DOM 桩真正执行 `web/app.js`：五个视图、筛选、开关、命令面板 |
+| 接口 | `test/api.test.js` | REST 路由：state、preferences、reveal、shelf、开关、404 |
+| 前端 | `test/web.test.js` | 用最小 DOM 桩真正执行 `web/app.js`：五个视图、筛选、开关、命令面板、总目录 |
 | 端到端 | `scripts/smoke.js` | 真 CLI → 真链接 → 真 HTTP → 真上传 → 真 git → 真 MCP 握手 |

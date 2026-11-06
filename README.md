@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b5bd6.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.17-3c873a.svg)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-5b5bd6.svg)](./package.json)
-[![Tests](https://img.shields.io/badge/tests-101%20passing-178f5a.svg)](./test)
+[![Tests](https://img.shields.io/badge/tests-111%20passing-178f5a.svg)](./test)
 
 </div>
 
@@ -252,9 +252,9 @@ skillhub/
 │   ├── styles.css             # 设计变量、亮/暗主题、全部组件
 │   ├── app.js                 # 状态 → 视图，命令面板、拖拽、撤销
 │   └── markdown.js            # SKILL.md 渲染（转义 HTML）
-├── test/                      # node:test 单元测试（101 个）
+├── test/                      # node:test 单元测试（111 个）
 ├── scripts/                   # check.js（自检）、smoke.js（端到端）
-└── docs/                      # 架构、工具矩阵、跨设备同步
+└── docs/                      # 架构、工具矩阵、跨设备同步、上传清单
 ```
 
 ## 常见问题
@@ -300,12 +300,14 @@ npm publish           # 发布（需要先 npm login）
 ## 开发
 
 ```bash
-npm test        # 101 个单元测试（node:test，无框架）
+npm test        # 111 个单元测试（node:test，无框架）
 npm run smoke   # 18 项端到端检查：CLI → 链接 → 服务 → 上传 → git → MCP 握手
 npm run check   # 语法、web 资源、package 元信息、README 链接自检
 ```
 
-CI 在 Linux + Windows、Node 18/20/22/24 上跑这三条命令，见 [.github/workflows/ci.yml](./.github/workflows/ci.yml)。
+CI 在 Linux + Windows + macOS、Node 18/20/22/24 上跑这三条命令，见 [.github/workflows/ci.yml](./.github/workflows/ci.yml)。
+
+准备推上 GitHub 或发 npm？[docs/github-upload.md](./docs/github-upload.md) 里有逐文件清单、推送步骤和常见坑。
 
 ## 贡献
 
