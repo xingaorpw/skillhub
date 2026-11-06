@@ -217,3 +217,126 @@ gh repo create skillhub --public --source=. --remote=origin --push
 | 私有仓库 | 完全可以，CI 在私有仓库同样免费额度内运行 |
 | 中文路径 | 仓库放在 `C:\Users\admin\Desktop\学习\skillhub`，路径含中文；git 与 Node 都没问题，但**别把仓库放进 OneDrive 同步目录**，junction 与同步会打架 |
 | 先提交再改仓库名 | 改名不影响历史，GitHub 会自动重定向旧地址 |
+
+---
+
+## 七、零基础完整流程（第一次用 GitHub）
+
+面向「没推过代码」的情况。每一步都给出**你会看到的反馈**，看到对的再往下走。
+
+### 第 0 步：先确认网络能到 GitHub
+
+这台机器的实测结论（2026-11-06）：
+
+| 目标 | 结果 | 说明 |
+| --- | --- | --- |
+| `api.github.com:443` | ✅ 通 | 接口可用 |
+| `github.com:22`（SSH） | ✅ 通 | **推送走这条路，不受影响** |
+| `github.com:443`（网页） | ❌ 超时 | 网页打不开，需要代理或换网络 |
+| `codeload.github.com:443` | ❌ 超时 | 装技能时的 zip 下载也会失败 |
+
+自己复测：
+
+```powershell
+ssh -T git@github.com          # 期望：Permission denied (publickey)  ← 这其实说明网络通了
+curl.exe -sS -o NUL -w "%{http_code}`n" https://github.com -m 8   # 期望：200
+```
+
+`Permission denied (publickey)` **不是网络问题**，是「还没把公钥加到 GitHub」。真正的网络失败长这样：`Connection timed out` / `Could not resolve host`。
+
+如果网页打不开：开代理工具，或把手机热点接给电脑，或干脆用手机浏览器完成第 1～3 步（建仓库、加公钥都只是网页操作）。
+
+### 第 1 步：注册 / 登录
+
+1. 浏览器打开 <https://github.com>，右上角 **Sign up**（已有账号点 **Sign in**）。
+2. 记住你的**用户名**，后面所有地址都用它。本文假设是 `Uxenq`。
+
+### 第 2 步：建一个空仓库
+
+1. 右上角 **+** → **New repository**。
+2. **Repository name** 填 `skillhub`。
+3. 可见性选 **Public**（想私有就选 Private，CI 一样能跑）。
+4. **下面三个勾全部不要勾**：不勾 README、不勾 .gitignore、不勾 license。
+   > 勾了会让远端先有一个提交，第一次 push 就会报 `rejected`，新手最容易卡在这里。
+5. 点 **Create repository**。你会看到一个空仓库页面，上面写着 `Quick setup`。
+
+### 第 3 步：把公钥加到 GitHub
+
+本机已经生成好密钥（`C:\Users\admin\.ssh\id_ed25519`），公钥是：
+
+```
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDltdXLC7C9P9NG07WPNjjkjeQt3UVlYKReAZrsUIIkO viicto.rvin.ck1@gmail.com
+```
+
+1. 网页右上角头像 → **Settings** → 左侧 **SSH and GPG keys** → **New SSH key**。
+2. **Title** 随便写，比如 `我的 Windows 笔记本`。
+3. **Key type** 保持 `Authentication Key`。
+4. **Key** 里粘贴上面那一整行（从 `ssh-ed25519` 到邮箱，别换行）。
+5. 点 **Add SSH key**，可能要输一次 GitHub 密码。
+
+验证（新开一个终端）：
+
+```powershell
+ssh -T git@github.com
+```
+
+看到这句就成功了：
+
+```
+Hi Uxenq! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+> 换电脑时重新生成：`ssh-keygen -t ed25519 -C "你的邮箱"`，然后 `type $env:USERPROFILE\.ssh\id_ed25519.pub` 复制公钥，重复本步。
+
+### 第 4 步：推送
+
+本机已经配好远端（`origin` = `git@github.com:Uxenq/skillhub.git`），只需要：
+
+```powershell
+cd C:\Users\admin\Desktop\学习\skillhub
+git push -u origin main
+```
+
+如果 `git` 提示找不到命令，关掉终端重开一次（PATH 已更新），或者直接用完整路径：
+
+```powershell
+& "C:\Users\admin\.qoder\bin\git\bin\git.exe" push -u origin main
+```
+
+成功的样子：
+
+```
+Enumerating objects: 78, done.
+...
+To github.com:Uxenq/skillhub.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+```
+
+刷新仓库页面，59 个文件就在上面了，**Actions** 标签会自动开始跑 CI。
+
+### 第 5 步：收尾
+
+1. 仓库首页右侧 **About** 齿轮 → Description 写一句 + Topics 填 `ai` `agent` `skills` `mcp`。
+2. 等 **Actions** 变绿（约 3～5 分钟，12 个任务）。
+3. 想发版本：`git tag v0.2.0 && git push --tags`，再在网页 **Releases** → **Draft a new release** 选这个 tag。
+
+### 出错了对照表
+
+| 报错 | 原因 | 怎么办 |
+| --- | --- | --- |
+| `Permission denied (publickey)` | 公钥没加、加到了别的账号、或 `~/.ssh/config` 指错 key | 重做第 3 步，`ssh -T git@github.com` 验证 |
+| `Repository not found` | 仓库没建 / 用户名拼错 / 大小写不符 | 核对 `git remote -v` 与网页地址 |
+| `Connection timed out` | 22 端口被封 | 把 `~/.ssh/config` 里注释掉的 443 那段启用（`HostName ssh.github.com` / `Port 443`） |
+| `failed to push some refs` / `rejected` | 建仓库时勾了 README 等初始化文件 | `git pull --rebase origin main` 后再 push |
+| `fatal: not a git repository` | 不在项目目录里 | `cd C:\Users\admin\Desktop\学习\skillhub` |
+| `src refspec main does not match any` | 当前分支不叫 main | `git branch -M main` 再 push |
+
+### 图形界面替代方案
+
+这台机器装了 **GitHub Desktop**（`C:\ProgramData\张啸宇\GitHubDesktop\bin`）。不想敲命令的话：
+
+1. 打开 GitHub Desktop → **File → Add local repository** → 选 `C:\Users\admin\Desktop\学习\skillhub`。
+2. 顶部 **Publish repository** → 取消勾选 *Keep this code private*（或保留）→ **Publish repository**。
+
+它自己处理登录和认证。注意：它的登录走网页，所以第 0 步的网络问题同样要先解决；而且它默认用 HTTPS 推送，如果 443 被墙，仍然要回到 SSH 方案。
