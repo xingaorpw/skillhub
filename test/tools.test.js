@@ -12,10 +12,13 @@ function fakeHome() {
 }
 
 test('resolveDir expands ~ and keeps absolute paths', () => {
-  const home = path.join('C:', 'Users', 'demo');
+  const home = path.resolve('fake-home');
   assert.equal(resolveDir('~/skills', home), path.join(home, 'skills'));
   assert.equal(resolveDir('~', home), home);
-  assert.equal(resolveDir(path.join(home, 'x'), home), path.join(home, 'x'));
+  // Build the absolute path with the platform's own rules: a hard-coded
+  // `C:\...` is not absolute on Linux, so path.resolve() would re-prefix it.
+  const absolute = path.resolve('absolute-target');
+  assert.equal(resolveDir(absolute, home), absolute);
   assert.equal(resolveDir('relative/skills', home), path.join(home, 'relative', 'skills'));
 });
 

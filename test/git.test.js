@@ -82,6 +82,31 @@ test('gitInit is idempotent', { skip: !git.available }, () => {
   assert.equal(gitStatus(hub).commits, 1);
 });
 
+test('gitInit commits even when the machine has no git identity', { skip: !git.available }, () => {
+  const hub = tempHub();
+  const emptyConfig = path.join(hub, '..', 'empty-gitconfig');
+  fs.writeFileSync(emptyConfig, '', 'utf8');
+
+  const saved = {
+    global: process.env.GIT_CONFIG_GLOBAL,
+    system: process.env.GIT_CONFIG_SYSTEM,
+  };
+  process.env.GIT_CONFIG_GLOBAL = emptyConfig;
+  process.env.GIT_CONFIG_SYSTEM = emptyConfig;
+  try {
+    const result = gitInit(hub, { commitMessage: 'chore: first' });
+    assert.equal(result.ok, true);
+    assert.equal(result.committed, true, 'a missing identity must not block the first commit');
+    assert.equal(result.identity?.name, 'SkillHub');
+    assert.equal(gitStatus(hub).commits, 1);
+  } finally {
+    if (saved.global === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+    else process.env.GIT_CONFIG_GLOBAL = saved.global;
+    if (saved.system === undefined) delete process.env.GIT_CONFIG_SYSTEM;
+    else process.env.GIT_CONFIG_SYSTEM = saved.system;
+  }
+});
+
 test('gitStatus counts uncommitted changes', { skip: !git.available }, () => {
   const hub = tempHub();
   gitInit(hub);

@@ -20,6 +20,9 @@ desktop.ini
 tmp/
 `;
 
+/** Used only when the machine has no git identity at all. */
+const FALLBACK_IDENTITY = { name: 'SkillHub', email: 'skillhub@localhost' };
+
 /** Extra places git is commonly installed but not on PATH. */
 const GIT_CANDIDATES = [
   process.env.SKILLHUB_GIT,
@@ -152,13 +155,38 @@ export function gitInit(hubDir, options = {}) {
   spawnSync(git.path, ['add', '-A'], { cwd: hubDir, encoding: 'utf8' });
   const staged = runGit(hubDir, ['diff', '--cached', '--name-only']) ?? '';
   let committed = false;
+  let identity = null;
   if (staged.trim()) {
     const message = options.commitMessage ?? `chore: sync skills (${new Date().toISOString().slice(0, 10)})`;
+    // A brand-new machine has no `user.name` / `user.email`, and `git commit`
+    // then fails with "Please tell me who you are". Set a repo-local identity
+    // rather than leaving the user with an uncommitted repository.
+    if (!hasIdentity(git.path, hubDir)) {
+      identity = FALLBACK_IDENTITY;
+      spawnSync(git.path, ['-C', hubDir, 'config', 'user.name', identity.name], { encoding: 'utf8' });
+      spawnSync(git.path, ['-C', hubDir, 'config', 'user.email', identity.email], { encoding: 'utf8' });
+    }
     const commit = spawnSync(git.path, ['commit', '-m', message], { cwd: hubDir, encoding: 'utf8' });
     committed = commit.status === 0;
   }
 
-  return { ok: true, gitignore: wroteGitignore, committed, status: gitStatus(hubDir), next };
+  return { ok: true, gitignore: wroteGitignore, committed, identity, status: gitStatus(hubDir), next };
+}
+
+/**
+ * True when git can resolve an author name and email for this repository
+ * (local config first, then global and system).
+ *
+ * @param {string} gitPath
+ * @param {string} hubDir
+ * @returns {boolean}
+ */
+function hasIdentity(gitPath, hubDir) {
+  for (const key of ['user.name', 'user.email']) {
+    const result = spawnSync(gitPath, ['-C', hubDir, 'config', key], { encoding: 'utf8', timeout: 5000 });
+    if (result.status !== 0 || !String(result.stdout ?? '').trim()) return false;
+  }
+  return true;
 }
 
 /**
