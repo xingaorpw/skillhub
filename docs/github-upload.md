@@ -2,7 +2,7 @@
 
 这份文档回答两件事：**仓库里到底有哪些文件**、**怎么把它推上去**。
 
-当前状态：**63 个文件，约 563 KB，零运行时依赖**。没有 `node_modules`、没有构建产物、没有任何密钥。
+当前状态：**65 个文件，约 694 KB，零运行时依赖**。没有 `node_modules`、没有构建产物、没有任何密钥。
 
 ---
 
@@ -11,7 +11,7 @@
 在仓库根目录执行：
 
 ```powershell
-npm test          # 预期：112 个测试全部通过
+npm test          # 预期：124 个测试全部通过
 npm run smoke     # 预期：18 项端到端检查通过
 npm run check     # 预期：checked 32 JavaScript files, 3 web assets, ...
 npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不含 test/scripts）
@@ -40,7 +40,7 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `.editorconfig` | 0.2 KB | 缩进/换行/编码统一 |
 | `.nvmrc` | 0 KB | `v22`，本地与 CI 的 Node 版本提示 |
 
-### 2. `src/core/`：核心逻辑（11 个文件）
+### 2. `src/core/`：核心逻辑（12 个文件）
 
 纯函数 + 文件系统操作，不依赖任何第三方包。
 
@@ -54,6 +54,7 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `plan.js` | 4.6 KB | 先算后做：`buildPlan` / `applyPlan` / `countByAction`，支持 dry-run |
 | `tools.js` | 4.0 KB | 9 个 AI 工具的技能目录注册表与自动探测；`tools` 非空时**替换**探测结果 |
 | `tokens.js` | 3.3 KB | token 估算（CJK/拉丁加权）、四档分级、成本预测、预算状态 |
+| `optimize.js` | 2.4 KB | 预算规划：给定预算算出该下架哪几个技能，纯函数，供 CLI / API / 控制台共用 |
 | `git.js` | 6.1 KB | 仓库状态（分支/remote/未提交/提交数）与一键初始化；找不到 git 时优雅降级 |
 | `frontmatter.js` | 3.2 KB | 手写 YAML frontmatter 解析/改写（引号、`>`/`|` 块标量、CRLF） |
 | `zip.js` | 3.5 KB | 极简 zip 解压（store + deflate，zip-slip 防护） |
@@ -81,7 +82,7 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `markdown.js` | 4.4 KB | SKILL.md 渲染（转义原始 HTML、拒绝 `javascript:`） |
 | `favicon.svg` | 0.4 KB | 站点图标 |
 
-### 6. `test/`：测试（16 个文件）
+### 6. `test/`：测试（17 个文件）
 
 | 文件 | 大小 | 覆盖 |
 | --- | --- | --- |
@@ -118,7 +119,7 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `tools.md` | 2.7 KB | 各 AI 工具目录矩阵与自定义接法 |
 | `sync-across-devices.md` | 3.4 KB | 三种同步方案（git / MCP / 只同步名单）、冲突处理 |
 | `maintenance.md` | 5.2 KB | 维护手册：每周清单、发版流程、排障顺序、维护者承诺 |
-| `screenshot.png` | 215.8 KB | README 用的控制台截图（1440×1200） |
+| `screenshot.png` | 330 KB | README 用的控制台截图（1440×2300） |
 | `github-upload.md` | 本文件 | 上传清单与步骤 |
 
 ### 9. `.github/`：协作与 CI（5 个文件）

@@ -761,6 +761,105 @@ kbd {
   flex-wrap: wrap;
 }
 
+/* ---------------------------------------------------------- budget planner */
+.tune-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.field-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+
+.tune-input {
+  width: 108px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tune-result {
+  margin-top: 14px;
+  min-height: 34px;
+}
+
+.tune-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--tier-light);
+}
+
+.tune-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tune-stat {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.tune-stat span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.tune-stat strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tune-drops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.tune-drops .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.tune-drops .chip em {
+  font-style: normal;
+  color: var(--text-faint);
+}
+
+.chip.danger {
+  border-color: color-mix(in srgb, var(--tier-extreme) 40%, var(--border));
+  color: var(--tier-extreme);
+}
+
+.tune-note {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 720px) {
+  .tune-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* --------------------------------------------------------------- donut */
 .donut-wrap {
   display: flex;
@@ -1192,9 +1291,7 @@ kbd {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.index-chip {
+}.index-chip {
   font-size: 11.5px;
   line-height: 1.7;
   padding: 2px 9px;

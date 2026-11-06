@@ -68,6 +68,8 @@ const ICONS = {
   sun: '<circle cx="12" cy="12" r="3.6"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4m0-12.8L17 7M7 17l-1.4 1.4"/>',
   upload: '<path d="M12 16V4m0 0 4.5 4.5M12 4 7.5 8.5M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/>',
   arrow: '<path d="M5 12h14m0 0-6-6m6 6-6 6"/>',
+  scissors:
+    '<circle cx="6.5" cy="6.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/><path d="M8.2 8.2 20 19M20 5 8.2 15.8"/>',
 };
 
 /**
@@ -108,6 +110,9 @@ let busy = false;
 let paletteIndex = 0;
 let paletteItems = [];
 let undoTimer = null;
+/** Latest budget plan from the server (see tuneCard). */
+let tunePlan = null;
+let tuneTimer = null;
 
 const VIEWS = [
   { id: 'dashboard', label: '概览', icon: 'grid' },
@@ -154,6 +159,9 @@ function render() {
 
   renderNav();
   renderView();
+
+  // The planner is a server round-trip, so kick it off after the view exists.
+  if (view === 'dashboard') refreshTune();
 }
 
 function renderNav() {
@@ -301,6 +309,8 @@ function viewDashboard() {
       ),
     ),
 
+    tuneCard(),
+
     h('div', { class: 'grid-2' },
       h('section', { class: 'card' },
         h('div', { class: 'card-head' },
@@ -321,6 +331,154 @@ function viewDashboard() {
 
     syncPanel(),
   ];
+}
+
+/**
+ * Budget planner card.
+ *
+ * The budget meter says "you are over". This says "here is exactly what to drop,
+ * and here is what it buys you" — the difference between a dashboard and a tool.
+ */
+function tuneCard() {
+  return h('section', { class: 'card' },
+    h('div', { class: 'card-head' },
+      h('h2', { class: 'card-title' }, '预算规划'),
+      h('span', { class: 'card-hint' }, '只下架最贵的几个，直到装进预算'),
+    ),
+    h('div', { class: 'card-body' },
+      h('div', { class: 'tune-controls' },
+        h('label', { class: 'field-inline' },
+          h('span', {}, '目标预算'),
+          h('input', {
+            id: 'tuneBudget',
+            class: 'input tune-input',
+            type: 'number',
+            min: '100',
+            step: '100',
+            value: String(state.budget ?? 2000),
+            oninput: onTuneInput,
+          }),
+          h('span', { class: 'muted' }, 'tokens'),
+        ),
+        h('button', { class: 'btn primary sm', id: 'tuneApply', onclick: applyTune }, icon('scissors', 14), '按这个方案下架'),
+      ),
+      h('div', { id: 'tuneResult', class: 'tune-result' }, h('p', { class: 'muted' }, '正在计算…')),
+    ),
+  );
+}
+
+/** Debounced: a number input fires on every keystroke. */
+function onTuneInput() {
+  clearTimeout(tuneTimer);
+  tuneTimer = setTimeout(refreshTune, 260);
+}
+
+/**
+ * Ask the server for a plan for the current target budget.
+ */
+async function refreshTune() {
+  const input = el('tuneBudget');
+  const raw = Number(input?.value);
+  const budget = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 2000;
+  try {
+    const result = await api('/api/optimize', { method: 'POST', body: JSON.stringify({ budget }) });
+    tunePlan = result.plan;
+    renderTuneResult();
+  } catch (error) {
+    const box = el('tuneResult');
+    if (box) box.replaceChildren(h('p', { class: 'muted' }, `算不出来：${error.message}`));
+  }
+}
+
+function renderTuneResult() {
+  const box = el('tuneResult');
+  if (!box || !tunePlan) return;
+  const plan = tunePlan;
+  const apply = el('tuneApply');
+  if (apply) apply.disabled = !plan.changed;
+
+  if (!plan.changed) {
+    // Room to spare is also a decision: show what else would still fit.
+    const headroom = Math.max(0, plan.budget - plan.before);
+    const candidates = state.skills
+      .filter((skill) => !skill.onShelf)
+      .sort((a, b) => a.catalogTokens - b.catalogTokens || a.name.localeCompare(b.name));
+    const fits = [];
+    let used = 0;
+    for (const skill of candidates) {
+      if (used + skill.catalogTokens > headroom) continue;
+      fits.push(skill);
+      used += skill.catalogTokens;
+    }
+
+    box.replaceChildren(
+      h('div', { class: 'tune-ok' },
+        icon('check', 15),
+        `已经装得下：≈${fmt(plan.before)} / ${fmt(plan.budget)} tokens`,
+      ),
+      h('p', { class: 'tune-note' },
+        fits.length
+          ? `还剩 ≈${fmt(headroom)} 余量，够再上架 ${fits.length} 个：${fits.slice(0, 6).map((s) => s.name).join('、')}${fits.length > 6 ? ' …' : ''}`
+          : `还剩 ≈${fmt(headroom)} 余量，但没有任何未上架技能装得下`),
+    );
+    return;
+  }
+
+  const cells = [
+    ['现在', `≈${fmt(plan.before)}`],
+    ['下架', `${plan.drop.length} 个`],
+    ['之后', `≈${fmt(plan.after)}`],
+    ['每轮省下', `≈${fmt(plan.saved)}`],
+  ];
+
+  box.replaceChildren(
+    h('div', { class: 'tune-stats' },
+      ...cells.map(([label, value]) =>
+        h('div', { class: 'tune-stat' }, h('span', {}, label), h('strong', {}, value)),
+      ),
+    ),
+    h('div', { class: 'tune-drops' },
+      ...plan.drops.slice(0, 18).map((drop) =>
+        h('span', { class: 'chip danger', title: `${drop.name} · ≈${drop.catalogTokens} tokens` },
+          drop.name, h('em', {}, fmt(drop.catalogTokens))),
+      ),
+      plan.drops.length > 18 ? h('span', { class: 'chip' }, `+${plan.drops.length - 18} 个`) : null,
+    ),
+    h('p', { class: 'tune-note' },
+      `下架之后仍有 ${plan.remaining} 个技能在架上；技能本体不会删除，随时可以再上架。`),
+  );
+}
+
+/**
+ * Apply the plan, keeping the previous shelf around for one-click undo.
+ */
+async function applyTune() {
+  if (!tunePlan?.changed || busy) return;
+  const previous = Array.isArray(state.shelf) ? [...state.shelf] : state.skills.map((skill) => skill.name);
+  busy = true;
+  try {
+    const result = await api('/api/optimize', {
+      method: 'POST',
+      body: JSON.stringify({ budget: tunePlan.budget, apply: true }),
+    });
+    tunePlan = result.plan;
+    await load();
+    toast(`已下架 ${result.plan.drop.length} 个技能，每轮省 ≈${fmt(result.plan.saved)} tokens`, false, {
+      label: '撤销',
+      run: async () => {
+        await api('/api/shelf', {
+          method: 'POST',
+          body: JSON.stringify({ mode: 'shelf', names: previous }),
+        });
+        await load();
+        toast('已恢复原来的上架名单');
+      },
+    });
+  } catch (error) {
+    toast(`应用失败：${error.message}`, true);
+  } finally {
+    busy = false;
+  }
 }
 
 /**
@@ -1131,6 +1289,7 @@ function paletteCommands() {
   const commands = [
     { label: '安装技能…', kind: '动作', run: () => el('installBtn').click() },
     { label: '应用链接', kind: '动作', run: applyLinks },
+    { label: '按预算瘦身', kind: '动作', run: () => { setView('dashboard'); setTimeout(() => el('tuneApply')?.focus?.(), 50); } },
     { label: '全部上架', kind: '动作', run: putAllOnShelf },
     { label: '全部下架', kind: '动作', run: takeAllOffShelf },
     { label: '打开概览', kind: '跳转', run: () => setView('dashboard') },

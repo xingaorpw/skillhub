@@ -6,7 +6,11 @@
 
 ### Added
 
-- **维护制度**：[ROADMAP.md](./ROADMAP.md) 公开接下来要做什么，[docs/maintenance.md](./docs/maintenance.md) 写清每周维护清单与发版流程，README 增加「维护」小节。
+- **预算规划器**：`skillhub tune [--budget N] [--apply]` 与控制台「预算规划」卡片。
+  给定目标预算，算出该下架哪几个技能（每次砍最贵的，所以下架数量最少），显示每轮省下多少、
+  还剩几个在架上，支持一键应用 + 撤销；没超预算时反过来显示「余量够再上架 N 个」。
+  API：`POST /api/optimize`。
+- **维护制度**：[ROADMAP.md](./ROADMAP.md) 公开接下来要做什么，[docs/maintenance.md](./docs/maintenance.md) 写清每周维护清单、发版流程与**每周一项优化/创新**的规则，README 增加「维护」小节。
 - **每周自动体检**：CI 增加 `schedule`（每周一 03:00 UTC），没有提交也会跑一遍矩阵，用来发现 Node 新版本导致的测试失败。
 - **Dependabot**：每周一检查 GitHub Actions 的版本，本项目没有运行时依赖，能腐化的只有这些 action。
 

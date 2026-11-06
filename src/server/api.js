@@ -24,7 +24,9 @@ import {
   removeSkill,
   resolveSkillDir,
   savePreferences,
+  setShelf,
   tierOf,
+  tuneShelf,
 } from '../core/index.js';
 import { countByAction } from '../core/plan.js';
 
@@ -66,6 +68,18 @@ export async function handleApi({ method, pathname, body, hubDir, allowOpen = fa
         counts: countByAction(plan.items),
         pending: plan.items.filter((item) => item.action === 'create' || item.action === 'remove'),
       },
+    };
+  }
+
+  if (route === 'POST /api/optimize') {
+    const { plan, applied } = tuneShelf(hubDir, {
+      budget: body?.budget,
+      apply: Boolean(body?.apply),
+    });
+    if (applied) linkAll({ hubDir });
+    return {
+      status: 200,
+      json: { plan, applied, state: applied ? publicState(getState({ hubDir })) : null },
     };
   }
 
@@ -139,7 +153,8 @@ export async function handleApi({ method, pathname, body, hubDir, allowOpen = fa
     if (mode === 'all') enableAll(hubDir);
     else if (mode === 'none') disableAll(hubDir);
     else if (mode === 'shelf') {
-      /* no-op: keep current shelf */
+      // Explicit list: used by undo. Without `names` the current shelf is kept.
+      if (Array.isArray(body?.names)) setShelf(hubDir, body.names);
     } else throw new ApiError(400, `unknown shelf mode: ${mode}`);
     linkAll({ hubDir });
     return { status: 200, json: publicState(getState({ hubDir })) };

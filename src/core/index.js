@@ -24,6 +24,7 @@ import {
 } from './hub.js';
 import { detectTools, platformLabel, resolveDir, TOOL_REGISTRY } from './tools.js';
 import { findGit, gitInit, gitStatus } from './git.js';
+import { planShelf } from './optimize.js';
 import { TIERS, projectUsage, tierOf } from './tokens.js';
 
 export {
@@ -51,6 +52,7 @@ export {
   findGit,
   gitInit,
   gitStatus,
+  planShelf,
   TIERS,
   tierOf,
   projectUsage,
@@ -242,6 +244,47 @@ export function disableAll(hubDir) {
   config.shelf = [];
   saveConfig(hubDir, config);
   return { shelf: [] };
+}
+
+/**
+ * Replace the shelf with an explicit list. Unknown names are ignored, so a stale
+ * list from the console (or an undo buffer) can never create a phantom entry.
+ *
+ * @param {string} hubDir
+ * @param {string[]} names
+ * @returns {{ shelf: string[] }}
+ */
+export function setShelf(hubDir, names) {
+  const config = loadConfig(hubDir);
+  const all = listSkills(hubDir).map((skill) => skill.name);
+  const wanted = new Set((Array.isArray(names) ? names : []).filter((name) => all.includes(name)));
+  config.shelf = all.filter((name) => wanted.has(name));
+  saveConfig(hubDir, config);
+  return { shelf: config.shelf };
+}
+
+/**
+ * Plan — and optionally apply — the shelf that fits a token budget.
+ *
+ * `minimal` semantics: drop the most expensive visible skills until the catalog
+ * fits, which loses the fewest skills for the most tokens freed.
+ *
+ * @param {string} hubDir
+ * @param {{ budget?: number, apply?: boolean }} [options]
+ * @returns {{ plan: ReturnType<typeof planShelf>, applied: boolean }}
+ */
+export function tuneShelf(hubDir, options = {}) {
+  const state = getState({ hubDir });
+  const budget = Number(options.budget) > 0 ? Number(options.budget) : state.budget;
+  const plan = planShelf(state.skills, { shelf: state.shelf, budget });
+
+  if (!options.apply || !plan.changed) return { plan, applied: false };
+
+  const config = loadConfig(state.hubDir);
+  const all = state.skills.map((skill) => skill.name);
+  config.shelf = all.filter((name) => plan.keep.includes(name));
+  saveConfig(state.hubDir, config);
+  return { plan, applied: true };
 }
 
 /**

@@ -317,6 +317,31 @@ function makeFetch(initial) {
       return jsonResponse({ path: target, opened: false });
     }
     if (path.endsWith('/api/preferences')) return jsonResponse(current);
+    if (path.endsWith('/api/optimize')) {
+      const body = options.body ? JSON.parse(options.body) : {};
+      const visible = current.skills.filter((item) => item.onShelf);
+      const before = visible.reduce((sum, item) => sum + item.catalogTokens, 0);
+      const budget = Number(body.budget) > 0 ? Number(body.budget) : current.budget;
+      const over = before > budget;
+      const expensive = [...visible].sort((a, b) => b.catalogTokens - a.catalogTokens)[0];
+      const plan = {
+        budget,
+        before,
+        after: over ? before - expensive.catalogTokens : before,
+        saved: over ? expensive.catalogTokens : 0,
+        changed: over,
+        keep: over ? visible.filter((item) => item !== expensive).map((item) => item.name) : visible.map((i) => i.name),
+        drop: over ? [expensive.name] : [],
+        drops: over ? [{ name: expensive.name, catalogTokens: expensive.catalogTokens }] : [],
+        count: visible.length,
+        remaining: over ? visible.length - 1 : visible.length,
+        total: current.skills.length,
+      };
+      if (body.apply && over) {
+        for (const skill of current.skills) skill.onShelf = plan.keep.includes(skill.name);
+      }
+      return jsonResponse({ plan, applied: Boolean(body.apply), state: body.apply ? current : null });
+    }
     if (path.endsWith('/api/git/init')) return jsonResponse({ ok: true, state: current, next: [] });
 
     return jsonResponse({});
@@ -409,6 +434,28 @@ test('dashboard renders KPI cards and the budget meter', async () => {
   assert.equal(content.querySelectorAll('.index-chip').length, 2, 'every skill must be listed on the dashboard');
   assert.equal(content.querySelectorAll('.index-chip.is-off').length, 1);
   assert.match(document.getElementById('footHubPath').textContent, /skillhub$/);
+});
+
+test('the budget planner previews what to drop', async () => {
+  const { document } = await boot('tune');
+  const content = document.getElementById('content');
+  const input = document.getElementById('tuneBudget');
+  assert.ok(input, 'the planner needs a budget input');
+  input.value = '1';
+  input.dispatch('input', { target: input });
+
+  // Debounced request (260ms) → wait for it.
+  await new Promise((resolve) => setTimeout(resolve, 360));
+
+  const drops = content.querySelectorAll('.tune-drops .chip');
+  assert.equal(drops.length, 1, 'one skill should be proposed for removal');
+  // Only on-shelf skills are candidates, and the most expensive goes first.
+  assert.match(drops[0].textContent, /alpha/);
+  assert.equal(content.querySelectorAll('.tune-stat').length, 4);
+
+  document.getElementById('tuneApply').dispatch('click', { target: document.getElementById('tuneApply') });
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  assert.match(document.getElementById('toast').textContent, /已下架|撤销/);
 });
 
 test('the hub folder is visible and clickable from the sidebar', async () => {

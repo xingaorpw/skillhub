@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { ensureHub, installFromDir, loadConfig } from '../src/core/hub.js';
+import { ensureHub, installFromDir, loadConfig, saveConfig } from '../src/core/hub.js';
 import { discoverSkillDirs } from '../src/core/installer.js';
 import { ApiError, handleApi } from '../src/server/api.js';
 
@@ -16,6 +16,13 @@ function tempHub() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-api-'));
   const hub = path.join(dir, 'hub');
   ensureHub(hub);
+
+  // Pin a fake tool directory: otherwise linking would write junctions into the
+  // real ~/.dsh, ~/.claude, … of whoever runs the tests.
+  const config = loadConfig(hub);
+  config.tools = [{ id: 'demo', label: 'Demo', dir: path.join(dir, 'demo-tool'), create: true }];
+  saveConfig(hub, config);
+
   for (const skill of discoverSkillDirs(FIXTURE_REPO)) installFromDir(skill, hub);
   return hub;
 }
@@ -97,6 +104,37 @@ test('toggling a skill returns the new state', async () => {
 
   const on = await call(hub, 'POST /api/skills/alpha/enable', { body: {} });
   assert.equal(on.json.skills.find((skill) => skill.name === 'alpha').onShelf, true);
+});
+
+test('POST /api/optimize plans without touching the shelf', async () => {
+  const hub = tempHub();
+  const { json } = await call(hub, 'POST /api/optimize', { body: { budget: 1 } });
+
+  assert.equal(json.applied, false);
+  assert.equal(json.plan.changed, true);
+  assert.ok(json.plan.drop.length > 0);
+  assert.equal(loadConfig(hub).shelf, null, 'a dry plan must not write the config');
+  assert.equal(json.state, null);
+});
+
+test('POST /api/optimize can apply the plan', async () => {
+  const hub = tempHub();
+  const planned = await call(hub, 'POST /api/optimize', { body: { budget: 1 } });
+  const { json } = await call(hub, 'POST /api/optimize', { body: { budget: 1, apply: true } });
+
+  assert.equal(json.applied, true);
+  assert.deepEqual(json.plan.drop, planned.json.plan.drop);
+  assert.deepEqual(loadConfig(hub).shelf, json.plan.keep);
+  assert.equal(json.state.stats.onShelf, json.plan.keep.length);
+});
+
+test('POST /api/shelf can restore an explicit list (what undo uses)', async () => {
+  const hub = tempHub();
+  await call(hub, 'POST /api/shelf', { body: { mode: 'none' } });
+
+  const { json } = await call(hub, 'POST /api/shelf', { body: { mode: 'shelf', names: ['alpha', 'ghost'] } });
+  assert.deepEqual(json.shelf, ['alpha']);
+  assert.deepEqual(loadConfig(hub).shelf, ['alpha']);
 });
 
 test('unknown endpoints are a 404 ApiError', async () => {

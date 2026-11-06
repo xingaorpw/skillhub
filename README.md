@@ -132,6 +132,7 @@ node src/cli.js serve
 | `skillhub mcp` | 以 MCP 服务（stdio）方式运行 |
 | `skillhub git [init\|status]` | 把中心变成 git 仓库 / 查看分支、remote、未提交改动 |
 | `skillhub config [budget\|requests] [值]` | 读取或设置目录预算与每日请求数（驱动成本预测） |
+| `skillhub tune [--budget N] [--apply]` | 算出该下架哪些技能才能装进预算，`--apply` 直接执行 |
 | `skillhub doctor` | 自检：中心、工具、断链、冲突 |
 
 常用参数：`--hub <dir>`、`--tool <id,id>`、`--dry-run`、`--overwrite`、`--json`、`--verbose`。
@@ -214,6 +215,9 @@ agent 工具每轮都会注入「技能名 + description」。SkillHub 把这件
 - **成本预测**：每轮 / 每天（默认 100 轮）/ 每月（30 天）三档换算，把「每轮 1.3k」翻译成「每月 ≈390 万」。
 - **分档**：每个技能按目录开销分成 轻 / 中 / 重 / 极重 四档，最贵的那几个一眼就能看到（实测 168 个技能里有一个 205 tokens 的「极重」技能）。
 - **节省量**：下架技能后，界面直接显示「每轮可省 ≈2010 tokens」。
+- **预算规划器**：控制台「预算规划」卡片或 `skillhub tune --budget 900` —— 给定预算，直接算出该下架哪几个
+  技能（每次砍最贵的，所以下架数量最少）、每轮省多少、还剩几个在架上，一键应用并支持撤销。
+  没超预算时反过来告诉你「余量够再上架 N 个」。这是从「你超了」到「这样就不超」的一步。
 
 实测参考：168 个技能 ≈ 15.9k 字符 ≈ 1 万 tokens；压到 56 个可见 + 短描述 ≈ 1.3k tokens（**−93%**）。
 

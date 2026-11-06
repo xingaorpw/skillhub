@@ -36,6 +36,7 @@ import {
   saveConfig,
   savePreferences,
   summarize,
+  tuneShelf,
 } from './core/index.js';
 import { formatTokens } from './core/tokens.js';
 
@@ -96,6 +97,8 @@ async function main(argv) {
       return cmdGit(hubDir, rest, flags);
     case 'config':
       return cmdConfig(hubDir, rest, flags);
+    case 'tune':
+      return cmdTune(hubDir, flags);
     case 'doctor':
       return cmdDoctor(hubDir, flags);
     default:
@@ -400,6 +403,43 @@ function cmdConfig(hubDir, args) {
 }
 
 /**
+ * `skillhub tune [--budget N] [--apply]` — plan the shelf that fits a budget.
+ *
+ * Prints the drops with their prices, so the trade-off is legible before anyone
+ * presses the button.
+ *
+ * @param {string} hubDir
+ * @param {Record<string, any>} flags
+ */
+function cmdTune(hubDir, flags) {
+  const { plan, applied } = tuneShelf(hubDir, { budget: flags.budget, apply: Boolean(flags.apply) });
+
+  console.log(`${color.bold('budget')}   ${formatTokens(plan.budget)} tokens`);
+  console.log(`${color.bold('visible')}  ${formatTokens(plan.before)} tokens · ${plan.count} skills`);
+
+  if (!plan.changed) {
+    console.log(`${color.green('✓')} already fits — nothing to drop`);
+    return;
+  }
+
+  console.log(
+    `${color.yellow('!')} over budget by ${formatTokens(plan.before - plan.budget)} — dropping ${plan.drop.length} skill(s) saves ${formatTokens(plan.saved)}`,
+  );
+  console.log('');
+  for (const drop of plan.drops) {
+    console.log(`  ${color.red('−')} ${drop.name.padEnd(28)} ${formatTokens(drop.catalogTokens).padStart(8)}`);
+  }
+  console.log('');
+  console.log(`after ${formatTokens(plan.after)} tokens · ${plan.remaining} skills stay on the shelf`);
+
+  if (applied) {
+    console.log(`${color.green('✓')} shelf updated — run ${color.cyan('skillhub link')} to apply to tools`);
+  } else {
+    console.log(color.dim(`apply with: skillhub tune --apply${flags.budget ? ` --budget ${flags.budget}` : ''}`));
+  }
+}
+
+/**
  * @param {string} hubDir
  */
 function cmdDoctor(hubDir) {
@@ -574,6 +614,7 @@ ${color.bold('COMMANDS')}
   mcp                     run as an MCP server over stdio
   git [init|status]       turn the hub into a repository / show its state
   config <key> [value]    read or set budget and daily requests
+  tune [--budget N]       plan the shelf that fits a token budget (--apply to do it)
   doctor                  diagnose the hub, tools and links
 
 ${color.bold('OPTIONS')}
