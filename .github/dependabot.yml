@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # No runtime dependencies — the only things that can rot are the Actions.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+      timezone: Asia/Shanghai
+    commit-message:
+      prefix: "chore(actions)"
+    labels:
+      - dependencies
+    open-pull-requests-limit: 5

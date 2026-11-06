@@ -2,7 +2,7 @@
 
 这份文档回答两件事：**仓库里到底有哪些文件**、**怎么把它推上去**。
 
-当前状态：**59 个文件，约 546 KB，零运行时依赖**。没有 `node_modules`、没有构建产物、没有任何密钥。
+当前状态：**63 个文件，约 563 KB，零运行时依赖**。没有 `node_modules`、没有构建产物、没有任何密钥。
 
 ---
 
@@ -30,7 +30,8 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `package.json` | 1.2 KB | 包元数据：`bin.skillhub`、`files`、`engines>=18.17`、`exports`、仓库地址、`publishConfig` |
 | `README.md` | 16.5 KB | 门面：解决的问题、特性表、界面截图、架构图、快速开始、CLI 表、MCP、同步、token 预算、安全、FAQ |
 | `LICENSE` | 1.1 KB | MIT |
-| `CHANGELOG.md` | 4.5 KB | Keep a Changelog 格式，0.1.0 / 0.2.0 |
+| `CHANGELOG.md` | 5.4 KB | Keep a Changelog 格式：Unreleased / 0.2.0 / 0.1.0 |
+| `ROADMAP.md` | 1.6 KB | 接下来要做什么（正在做 / 接下来 / 以后再说），每周复查 |
 | `CONTRIBUTING.md` | 2.7 KB | 开发流程、提交规范、加新工具的步骤 |
 | `CODE_OF_CONDUCT.md` | 1.8 KB | 贡献者公约 |
 | `SECURITY.md` | 2.1 KB | 漏洞报告方式与支持范围 |
@@ -39,7 +40,7 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `.editorconfig` | 0.2 KB | 缩进/换行/编码统一 |
 | `.nvmrc` | 0 KB | `v22`，本地与 CI 的 Node 版本提示 |
 
-### 2. `src/core/`：核心逻辑（10 个文件）
+### 2. `src/core/`：核心逻辑（11 个文件）
 
 纯函数 + 文件系统操作，不依赖任何第三方包。
 
@@ -101,28 +102,31 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `fixtures/repo/skills/alpha/SKILL.md` | 0.3 KB | 示例技能 A |
 | `fixtures/repo/skills/beta/SKILL.md` | 0.3 KB | 示例技能 B（折叠描述 + `disable-model-invocation`） |
 
-### 7. `scripts/`：自检（2 个文件）
+### 7. `scripts/`：自检（3 个文件）
 
 | 文件 | 大小 | 说明 |
 | --- | --- | --- |
+| `test.js` | 1.2 KB | 跨版本跑测试：自己递归找 `*.test.js` 再显式传给 `node --test`（Node 18/20 认目录、22+ 认 glob，写法不同） |
 | `check.js` | 3.2 KB | 全部 JS 语法、web 资源引用、`package.json` 的 bin/main/exports、README 相对链接 |
 | `smoke.js` | 9.7 KB | 18 项端到端：init → 自定义工具 → add → link → list → disable → doctor → serve → 静态页 → HTTP 开关 → 预算 → 拖拽导入 → git init → CLI config/git → MCP 握手 → tools/call |
 
-### 8. `docs/`：文档（5 个文件）
+### 8. `docs/`：文档（6 个文件）
 
 | 文件 | 大小 | 说明 |
 | --- | --- | --- |
 | `architecture.md` | 7.3 KB | 设计目标、模块图、数据流、状态存放、成本模型、git 集成、扩展点、测试策略 |
 | `tools.md` | 2.7 KB | 各 AI 工具目录矩阵与自定义接法 |
 | `sync-across-devices.md` | 3.4 KB | 三种同步方案（git / MCP / 只同步名单）、冲突处理 |
+| `maintenance.md` | 5.2 KB | 维护手册：每周清单、发版流程、排障顺序、维护者承诺 |
 | `screenshot.png` | 215.8 KB | README 用的控制台截图（1440×1200） |
 | `github-upload.md` | 本文件 | 上传清单与步骤 |
 
-### 9. `.github/`：协作与 CI（4 个文件）
+### 9. `.github/`：协作与 CI（5 个文件）
 
 | 文件 | 大小 | 说明 |
 | --- | --- | --- |
-| `workflows/ci.yml` | 0.8 KB | Linux/Windows/macOS × Node 18/20/22/24，跑 `check` + `test` + `smoke` |
+| `workflows/ci.yml` | 1.0 KB | Linux/Windows/macOS × Node 18/20/22/24 跑 `check` + `test` + `smoke`；每周一 03:00 UTC 定时再跑一次 |
+| `dependabot.yml` | 0.5 KB | 每周一检查 GitHub Actions 版本（本项目没有运行时依赖） |
 | `ISSUE_TEMPLATE/bug_report.yml` | 1.6 KB | Bug 模板（含 `skillhub doctor` 输出栏） |
 | `ISSUE_TEMPLATE/feature_request.yml` | 1.1 KB | 需求模板 |
 | `pull_request_template.md` | 0.7 KB | PR 自查清单 |

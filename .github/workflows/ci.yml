@@ -4,10 +4,18 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly run even without commits: catches "a new Node release broke us" and
+  # "an action got deprecated" without waiting for a human to push something.
+  schedule:
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:

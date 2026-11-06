@@ -10,6 +10,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18.17-3c873a.svg)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-5b5bd6.svg)](./package.json)
 [![Tests](https://img.shields.io/badge/tests-112%20passing-178f5a.svg)](./test)
+[![Maintained](https://img.shields.io/badge/maintained-weekly-d97706.svg)](./docs/maintenance.md)
 
 </div>
 
@@ -253,8 +254,9 @@ skillhub/
 │   ├── app.js                 # 状态 → 视图，命令面板、拖拽、撤销
 │   └── markdown.js            # SKILL.md 渲染（转义 HTML）
 ├── test/                      # node:test 单元测试（112 个）
-├── scripts/                   # check.js（自检）、smoke.js（端到端）
-└── docs/                      # 架构、工具矩阵、跨设备同步、上传清单
+├── scripts/                   # test.js（跨版本跑测试）、check.js（自检）、smoke.js（端到端）
+├── docs/                      # 架构、工具矩阵、跨设备同步、维护手册、上传清单
+└── ROADMAP.md                 # 接下来要做什么
 ```
 
 ## 常见问题
@@ -308,6 +310,21 @@ npm run check   # 语法、web 资源、package 元信息、README 链接自检
 CI 在 Linux + Windows + macOS、Node 18/20/22/24 上跑这三条命令，见 [.github/workflows/ci.yml](./.github/workflows/ci.yml)。
 
 准备推上 GitHub 或发 npm？[docs/github-upload.md](./docs/github-upload.md) 里有逐文件清单、推送步骤和常见坑。
+
+## 维护
+
+| | |
+| --- | --- |
+| 维护者 | [@xingaorpw](https://github.com/xingaorpw) |
+| 节奏 | **每周一次**（周一）：跑 CI、处理 issue/PR、更新变更日志 |
+| 最近一次维护 | 2026-11-06 |
+| 支持范围 | Node 18 / 20 / 22 / 24，Windows / macOS / Linux |
+| 响应 | issue 一般 7 天内首次回复；安全问题按 [SECURITY.md](./SECURITY.md) 走私密渠道，48 小时内确认 |
+
+做事的顺序写在 [docs/maintenance.md](./docs/maintenance.md)：每周清单、发版流程、排障顺序。
+接下来要做什么写在 [ROADMAP.md](./ROADMAP.md)，只保留「还没发出去的事」，做完就移进 [CHANGELOG](./CHANGELOG.md)。
+
+自动化承担了一部分重复劳动：CI 在每次 push/PR 跑 3 系统 × 4 版本的矩阵，并且**每周一 03:00 UTC 定时再跑一次**（不需要有人提交，用来发现 Node 新版本把测试跑挂这类外部变化）；Dependabot 每周一检查 GitHub Actions 的版本。
 
 ## 贡献
 

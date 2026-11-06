@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- **维护制度**：[ROADMAP.md](./ROADMAP.md) 公开接下来要做什么，[docs/maintenance.md](./docs/maintenance.md) 写清每周维护清单与发版流程，README 增加「维护」小节。
+- **每周自动体检**：CI 增加 `schedule`（每周一 03:00 UTC），没有提交也会跑一遍矩阵，用来发现 Node 新版本导致的测试失败。
+- **Dependabot**：每周一检查 GitHub Actions 的版本，本项目没有运行时依赖，能腐化的只有这些 action。
+
 ## [0.2.0] - 2026-11-05
 
 控制台重做，并把「省 token」从一句口号变成可度量的仪表；新增拖拽导入与 git 同步面板。
@@ -34,6 +42,9 @@
 
 - `skillhub.json` 保存时丢失 `budget` / `dailyRequests`。
 - 前端测试用的 DOM shim 支持 `replaceChildren`、后代选择器与 `textContent` 拼接，能真正跑通新控制台。
+- 没有 git 身份的新机器上 `skillhub git init` 建了仓库却提交不了（`Please tell me who you are`）；现在回落到仓库级 `SkillHub <skillhub@localhost>`，并在返回值里标出 `identity`。
+- `test/tools.test.js` 在非 Windows 平台断言失败：它硬编码了 Windows 绝对路径，而 `C:\...` 在 Linux 上不是绝对路径。
+- CI 在 Node 18/20 上跑不起测试：`node --test` 对「目录」和「glob」的解释在不同版本间变过。改用 `scripts/test.js` 自己找文件再显式传参，4 个版本行为一致。
 
 ## [0.1.0] - 2026-11-05
 
