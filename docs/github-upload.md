@@ -2,7 +2,7 @@
 
 这份文档回答两件事：**仓库里到底有哪些文件**、**怎么把它推上去**。
 
-当前状态：**58 个文件，约 535 KB，零运行时依赖**。没有 `node_modules`、没有构建产物、没有任何密钥。
+当前状态：**59 个文件，约 546 KB，零运行时依赖**。没有 `node_modules`、没有构建产物、没有任何密钥。
 
 ---
 
@@ -108,7 +108,7 @@ npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不�
 | `check.js` | 3.2 KB | 全部 JS 语法、web 资源引用、`package.json` 的 bin/main/exports、README 相对链接 |
 | `smoke.js` | 9.7 KB | 18 项端到端：init → 自定义工具 → add → link → list → disable → doctor → serve → 静态页 → HTTP 开关 → 预算 → 拖拽导入 → git init → CLI config/git → MCP 握手 → tools/call |
 
-### 8. `docs/`：文档（4 个文件）
+### 8. `docs/`：文档（5 个文件）
 
 | 文件 | 大小 | 说明 |
 | --- | --- | --- |
