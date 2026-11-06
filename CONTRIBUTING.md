@@ -10,7 +10,7 @@
 ## 本地验证
 
 ```bash
-node --test "test/**/*.test.js"   # 单元测试
+node scripts/test.js        # 单元测试
 node scripts/check.js             # 语法 / web 资源 / package 元信息 / README 链接
 node scripts/smoke.js             # 端到端：CLI → 链接 → HTTP → MCP
 ```

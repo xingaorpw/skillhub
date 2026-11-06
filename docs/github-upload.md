@@ -11,7 +11,7 @@
 在仓库根目录执行：
 
 ```powershell
-npm test          # 预期：111 个测试全部通过
+npm test          # 预期：112 个测试全部通过
 npm run smoke     # 预期：18 项端到端检查通过
 npm run check     # 预期：checked 32 JavaScript files, 3 web assets, ...
 npm pack --dry-run  # 预期：29 files, ~181 KB（npm 包会比仓库小，不含 test/scripts）
@@ -201,7 +201,7 @@ gh repo create skillhub --public --source=. --remote=origin --push
    ```
 
 5. **确认清单**
-   - [ ] README 顶部徽章显示 `tests 111 passing`
+   - [ ] README 顶部徽章显示 `tests 112 passing`
    - [ ] README 里的截图能正常显示
    - [ ] Actions 全绿
    - [ ] `npx skillhub init` 能跑通（发布 npm 后）

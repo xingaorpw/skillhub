@@ -23,7 +23,7 @@
   },
   "scripts": {
     "start": "node src/cli.js serve",
-    "test": "node --test \"test/**/*.test.js\"",
+    "test": "node scripts/test.js",
     "check": "node scripts/check.js",
     "smoke": "node scripts/smoke.js"
   },
