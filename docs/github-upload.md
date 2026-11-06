@@ -154,10 +154,10 @@ node_modules/  dist/  coverage/  *.tsbuildinfo     # 依赖与构建产物（本
 cd C:\Users\admin\Desktop\学习\skillhub
 
 # 1) 先在 GitHub 网页建一个空仓库（不要勾选 README / .gitignore / LICENSE）
-#    假设叫 skillhub，账号是 Uxenq
+#    假设叫 skillhub，账号是 xingaorpw
 
 # 2) 关联远端
-git remote add origin https://github.com/Uxenq/skillhub.git
+git remote add origin https://github.com/xingaorpw/skillhub.git
 
 # 3) 推送（分支已命名为 main）
 git push -u origin main
@@ -166,7 +166,7 @@ git push -u origin main
 如果本机 git 不在 PATH（这台机器的情况），用完整路径：
 
 ```powershell
-& "C:\Users\admin\.qoder\bin\git\bin\git.exe" remote add origin https://github.com/Uxenq/skillhub.git
+& "C:\Users\admin\.qoder\bin\git\bin\git.exe" remote add origin https://github.com/xingaorpw/skillhub.git
 & "C:\Users\admin\.qoder\bin\git\bin\git.exe" push -u origin main
 ```
 
@@ -197,7 +197,7 @@ gh repo create skillhub --public --source=. --remote=origin --push
 
    ```powershell
    npm login
-   npm publish        # 包名 skillhub 若被占用，改成 @Uxenq/skillhub
+   npm publish        # 包名 skillhub 若被占用，改成 @xingaorpw/skillhub
    ```
 
 5. **确认清单**
@@ -212,7 +212,7 @@ gh repo create skillhub --public --source=. --remote=origin --push
 
 | 坑 | 说明 |
 | --- | --- |
-| 账号不是 `Uxenq` | `package.json` 的 `repository` / `bugs` / `homepage` 和 README 里的 clone 地址要一起改，共 4 处 |
+| 换了账号名 | 改 `package.json` 的 `repository` / `bugs` / `homepage`、README 的 clone 地址、`CHANGELOG.md` 的 3 个链接，再 `git remote set-url origin git@github.com:<新账号>/skillhub.git` |
 | Windows 换行 | `.gitattributes` 已强制 LF，别删；否则 CI 上 diff 全是换行 |
 | 私有仓库 | 完全可以，CI 在私有仓库同样免费额度内运行 |
 | 中文路径 | 仓库放在 `C:\Users\admin\Desktop\学习\skillhub`，路径含中文；git 与 Node 都没问题，但**别把仓库放进 OneDrive 同步目录**，junction 与同步会打架 |
@@ -249,7 +249,7 @@ curl.exe -sS -o NUL -w "%{http_code}`n" https://github.com -m 8   # 期望：200
 ### 第 1 步：注册 / 登录
 
 1. 浏览器打开 <https://github.com>，右上角 **Sign up**（已有账号点 **Sign in**）。
-2. 记住你的**用户名**，后面所有地址都用它。本文假设是 `Uxenq`。
+2. 记住你的**用户名**，后面所有地址都用它。本文假设是 `xingaorpw`。
 
 ### 第 2 步：建一个空仓库
 
@@ -283,14 +283,14 @@ ssh -T git@github.com
 看到这句就成功了：
 
 ```
-Hi Uxenq! You've successfully authenticated, but GitHub does not provide shell access.
+Hi xingaorpw! You've successfully authenticated, but GitHub does not provide shell access.
 ```
 
 > 换电脑时重新生成：`ssh-keygen -t ed25519 -C "你的邮箱"`，然后 `type $env:USERPROFILE\.ssh\id_ed25519.pub` 复制公钥，重复本步。
 
 ### 第 4 步：推送
 
-本机已经配好远端（`origin` = `git@github.com:Uxenq/skillhub.git`），只需要：
+本机已经配好远端（`origin` = `git@github.com:xingaorpw/skillhub.git`），只需要：
 
 ```powershell
 cd C:\Users\admin\Desktop\学习\skillhub
@@ -308,7 +308,7 @@ git push -u origin main
 ```
 Enumerating objects: 78, done.
 ...
-To github.com:Uxenq/skillhub.git
+To github.com:xingaorpw/skillhub.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
 ```

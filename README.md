@@ -105,7 +105,7 @@ npx skillhub serve
 没有 npx？直接跑源码：
 
 ```bash
-git clone https://github.com/Uxenq/skillhub.git
+git clone https://github.com/xingaorpw/skillhub.git
 cd skillhub
 node src/cli.js init
 node src/cli.js add mattpocock/skills
