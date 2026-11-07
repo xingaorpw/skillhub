@@ -59,6 +59,18 @@ export function isLinkedInto(linkPath, hubDir) {
 }
 
 /**
+ * @param {string} p
+ * @returns {string}
+ */
+function realOrResolve(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return path.resolve(p);
+  }
+}
+
+/**
  * True when the link's *final* destination is inside the hub.
  *
  * A link can point at another tool folder that itself links into the hub (a
@@ -77,7 +89,10 @@ export function resolvesInto(linkPath, hubDir) {
     return false;
   }
   const hub = path.resolve(hubDir);
-  return real === hub || real.startsWith(hub + path.sep);
+  if (real === hub || real.startsWith(hub + path.sep)) return true;
+  // macOS reaches /var through /private/var, so compare resolved forms too.
+  const hubReal = realOrResolve(hubDir);
+  return real === hubReal || real.startsWith(hubReal + path.sep);
 }
 
 /**
