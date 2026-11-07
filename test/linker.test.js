@@ -27,6 +27,18 @@ test('creates a link that resolves to the hub skill', () => {
   assert.deepEqual(inspectLink(link, hub).state, 'linked');
 });
 
+test('a link that reaches the hub through another folder is reported as chained', () => {
+  const { root, hub, link } = workspace();
+  const middle = path.join(root, 'middle', 'demo');
+  fs.mkdirSync(path.dirname(middle), { recursive: true });
+  createLink(path.join(hub, 'demo'), middle);
+  createLink(middle, link);
+
+  const state = inspectLink(link, hub);
+  assert.equal(state.state, 'chained');
+  assert.equal(state.target, middle);
+});
+
 test('removing a link leaves the target untouched', () => {
   const { hub, link } = workspace();
   createLink(path.join(hub, 'demo'), link);

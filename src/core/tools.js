@@ -21,6 +21,7 @@ export const TOOL_REGISTRY = /** @type {ToolSpec[]} */ ([
   { id: 'dsh', label: 'DeepSeek Harness', dir: '.dsh/skills', create: true },
   { id: 'claude', label: 'Claude Code', dir: '.claude/skills', create: true },
   { id: 'codex', label: 'Codex CLI', dir: '.codex/skills', create: true },
+  { id: 'agents', label: 'Agents 共享目录', dir: '.agents/skills', create: false },
   { id: 'cursor', label: 'Cursor', dir: '.cursor/skills', create: false },
   { id: 'workbuddy', label: 'WorkBuddy', dir: '.workbuddy/skills', create: false },
   { id: 'qoder', label: 'Qoder', dir: '.qoder/skills', create: false },

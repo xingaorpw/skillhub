@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-5b5bd6.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.17-3c873a.svg)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-5b5bd6.svg)](./package.json)
-[![Tests](https://img.shields.io/badge/tests-124%20passing-178f5a.svg)](./test)
+[![Tests](https://img.shields.io/badge/tests-132%20passing-178f5a.svg)](./test)
 [![Maintained](https://img.shields.io/badge/maintained-weekly-d97706.svg)](./docs/maintenance.md)
 
 </div>
@@ -133,6 +133,8 @@ node src/cli.js serve
 | `skillhub git [init\|status]` | 把中心变成 git 仓库 / 查看分支、remote、未提交改动 |
 | `skillhub config [budget\|requests] [值]` | 读取或设置目录预算与每日请求数（驱动成本预测） |
 | `skillhub tune [--budget N] [--apply]` | 算出该下架哪些技能才能装进预算，`--apply` 直接执行 |
+| `skillhub adopt [--dry-run]` | 把被某个 AI 直接装进它自己目录的技能收回中心，原地留链接 |
+| `skillhub guard [--interval ms]` | 持续盯着各工具目录，发现游离技能就自动收回 |
 | `skillhub doctor` | 自检：中心、工具、断链、冲突 |
 
 常用参数：`--hub <dir>`、`--tool <id,id>`、`--dry-run`、`--overwrite`、`--json`、`--verbose`。
@@ -221,6 +223,30 @@ agent 工具每轮都会注入「技能名 + description」。SkillHub 把这件
 
 实测参考：168 个技能 ≈ 15.9k 字符 ≈ 1 万 tokens；压到 56 个可见 + 短描述 ≈ 1.3k tokens（**−93%**）。
 
+## 让下载都落到中心
+
+中心只有在「所有 AI 都从它这里拿技能」时才成立。现实是每个工具都能自己装技能：市场按钮、`git clone` 到 `~/.claude/skills`、手动解压的 zip。这类副本会绕开中心——别的工具看不见，更新时改的是其中一份，目录开销还付了两遍。
+
+SkillHub 的处理是**收编**，不是禁止：
+
+```bash
+skillhub adopt --dry-run   # 先看有哪些游离技能
+skillhub adopt             # 移进中心，原地留链接
+skillhub guard             # 或一直盯着：发现新的就自动收编
+```
+
+`guard` 每 4 秒扫一遍所有工具目录（比 `fs.watch` 可靠：安装器写一堆文件、网络盘不一定会发事件）。发现「真目录 + 有 SKILL.md」就搬进中心并留下链接——之后那个工具读到的就是中心里的那份。
+
+安全边界：**只有确认中心里的副本文件数和字节数完全一致之后，才删除原目录**。搬运失败时原目录原样保留，并把原因打出来。
+
+```bash
+$ skillhub adopt
+  + study-buddy                  workbuddy · adopted
+1 adopted, 0 failed
+```
+
+> 如果你用的是从源码跑的 `node src/cli.js`，把上面的 `skillhub` 换成它即可。
+
 ## 安全模型
 
 - **默认只听 `127.0.0.1`**。绑定 `0.0.0.0` 时会自动生成 token，写操作必须带 `x-skillhub-token`（或 `?token=`）。
@@ -257,7 +283,7 @@ skillhub/
 │   ├── styles.css             # 设计变量、亮/暗主题、全部组件
 │   ├── app.js                 # 状态 → 视图，命令面板、拖拽、撤销
 │   └── markdown.js            # SKILL.md 渲染（转义 HTML）
-├── test/                      # node:test 单元测试（112 个）
+├── test/                      # node:test 单元测试（132 个）
 ├── scripts/                   # test.js（跨版本跑测试）、check.js（自检）、smoke.js（端到端）
 ├── docs/                      # 架构、工具矩阵、跨设备同步、维护手册、上传清单
 └── ROADMAP.md                 # 接下来要做什么
@@ -306,7 +332,7 @@ npm publish           # 发布（需要先 npm login）
 ## 开发
 
 ```bash
-npm test        # 112 个单元测试（node:test，无框架）
+npm test        # 132 个单元测试（node:test，无框架）
 npm run smoke   # 18 项端到端检查：CLI → 链接 → 服务 → 上传 → git → MCP 握手
 npm run check   # 语法、web 资源、package 元信息、README 链接自检
 ```

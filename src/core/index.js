@@ -25,6 +25,7 @@ import {
 import { detectTools, platformLabel, resolveDir, TOOL_REGISTRY } from './tools.js';
 import { findGit, gitInit, gitStatus } from './git.js';
 import { planShelf } from './optimize.js';
+import { adoptAll, adoptStray, findStrays } from './adopt.js';
 import { TIERS, projectUsage, tierOf } from './tokens.js';
 
 export {
@@ -53,6 +54,9 @@ export {
   gitInit,
   gitStatus,
   planShelf,
+  findStrays,
+  adoptStray,
+  adoptAll,
   TIERS,
   tierOf,
   projectUsage,

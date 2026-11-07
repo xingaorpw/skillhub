@@ -10,7 +10,7 @@ import path from 'node:path';
 
 import { createLink, inspectLink, removeLink } from './linker.js';
 
-/** @typedef {'create' | 'remove' | 'ok' | 'blocked' | 'foreign'} PlanAction */
+/** @typedef {'create' | 'relink' | 'remove' | 'ok' | 'blocked' | 'foreign'} PlanAction */
 /** @typedef {{ tool: string, toolLabel: string, skill: string, action: PlanAction, detail: string }} PlanItem */
 /** @typedef {{ items: PlanItem[], counts: Record<string, number> }} Plan */
 
@@ -38,6 +38,14 @@ export function buildPlan({ hubDir, skills, tools, shelf }) {
           items.push({ tool: tool.id, toolLabel: tool.label, skill: skill.name, action: 'create', detail: 'link' });
         } else if (current.state === 'linked') {
           items.push({ tool: tool.id, toolLabel: tool.label, skill: skill.name, action: 'ok', detail: 'already linked' });
+        } else if (current.state === 'chained') {
+          items.push({
+            tool: tool.id,
+            toolLabel: tool.label,
+            skill: skill.name,
+            action: 'relink',
+            detail: `reached the hub through ${current.target}`,
+          });
         } else if (current.state === 'linked-elsewhere') {
           items.push({
             tool: tool.id,
@@ -85,11 +93,12 @@ export function applyPlan(plan, options) {
 
   let created = 0;
   let removed = 0;
+  let relinked = 0;
   /** @type {{ item: PlanItem, error: string }[]} */
   const failed = [];
 
   for (const item of plan.items) {
-    if (item.action !== 'create' && item.action !== 'remove') {
+    if (item.action !== 'create' && item.action !== 'remove' && item.action !== 'relink') {
       onItem(item);
       continue;
     }
@@ -105,19 +114,25 @@ export function applyPlan(plan, options) {
       if (!dryRun) {
         if (item.action === 'create') {
           createLink(joinPath(hubDir, item.skill), linkPath);
-        } else {
+        } else if (item.action === 'remove') {
           removeLink(linkPath);
+        } else {
+          // Same destination, but through a chain: replace it with a direct link
+          // so the gate does not depend on another tool folder staying alive.
+          removeLink(linkPath);
+          createLink(joinPath(hubDir, item.skill), linkPath);
         }
       }
       if (item.action === 'create') created += 1;
-      else removed += 1;
+      else if (item.action === 'remove') removed += 1;
+      else relinked += 1;
       onItem(item);
     } catch (error) {
       failed.push({ item, error: /** @type {Error} */ (error).message });
     }
   }
 
-  return { created, removed, failed };
+  return { created, removed, relinked, failed };
 }
 
 /**
@@ -129,7 +144,7 @@ export function applyPlan(plan, options) {
  */
 export function countByAction(items) {
   /** @type {Record<string, number>} */
-  const counts = { create: 0, remove: 0, ok: 0, blocked: 0, foreign: 0 };
+  const counts = { create: 0, relink: 0, remove: 0, ok: 0, blocked: 0, foreign: 0 };
   for (const item of items) counts[item.action] = (counts[item.action] ?? 0) + 1;
   return counts;
 }

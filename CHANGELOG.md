@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-07
+
+### Added
+
+- **收编游离技能**：`skillhub adopt [--dry-run]` 把被某个 AI 直接装进它自己目录的技能移进中心，
+  原地留链接；`skillhub guard` 持续盯着所有工具目录自动收编。只有确认中心副本的文件数与
+  字节数完全一致后才删除原目录，失败时原样保留。
+- **`.agents/skills` 纳入识别**：这是多工具共用的技能目录，之前完全在探测范围之外。
+- **链式链接自动修正**：链接经由另一个工具目录间接指到中心时（`claude → .agents → hub`），
+  现在报告为 `chained` 并在 `skillhub link` 时重建为直连，避免中间目录消失后整条链断掉。
+
 ## [0.3.0] - 2026-11-06
 
 ### Added
@@ -69,7 +80,8 @@
 - **自检**：`skillhub doctor` 检查中心、工具、断链与冲突；`scripts/check.js` 做语法与元信息自检。
 - **测试**：67 个 `node:test` 单元测试（含前端 DOM 渲染测试）+ 13 项端到端冒烟检查。
 
-[Unreleased]: https://github.com/xingaorpw/skillhub/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/xingaorpw/skillhub/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.4.0
 [0.3.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.3.0
 [0.2.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.2.0
 [0.1.0]: https://github.com/xingaorpw/skillhub/releases/tag/v0.1.0

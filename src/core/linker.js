@@ -59,6 +59,28 @@ export function isLinkedInto(linkPath, hubDir) {
 }
 
 /**
+ * True when the link's *final* destination is inside the hub.
+ *
+ * A link can point at another tool folder that itself links into the hub (a
+ * chain). It works today but breaks the moment the middle folder goes away, so
+ * `inspectLink` reports that case separately.
+ *
+ * @param {string} linkPath
+ * @param {string} hubDir
+ * @returns {boolean}
+ */
+export function resolvesInto(linkPath, hubDir) {
+  let real;
+  try {
+    real = fs.realpathSync(linkPath);
+  } catch {
+    return false;
+  }
+  const hub = path.resolve(hubDir);
+  return real === hub || real.startsWith(hub + path.sep);
+}
+
+/**
  * Create a directory link. On Windows this is a junction, which requires no
  * elevation; elsewhere it is a plain symlink.
  *
@@ -116,9 +138,10 @@ export function inspectLink(linkPath, hubDir) {
   const kind = entryKind(linkPath);
   if (kind === 'missing') return { state: 'missing', target: null };
   if (kind === 'link') {
-    return isLinkedInto(linkPath, hubDir)
-      ? { state: 'linked', target: linkTarget(linkPath) }
-      : { state: 'linked-elsewhere', target: linkTarget(linkPath) };
+    if (isLinkedInto(linkPath, hubDir)) return { state: 'linked', target: linkTarget(linkPath) };
+    // Points somewhere else, but that "somewhere" is itself the hub: a chain.
+    if (resolvesInto(linkPath, hubDir)) return { state: 'chained', target: linkTarget(linkPath) };
+    return { state: 'linked-elsewhere', target: linkTarget(linkPath) };
   }
   // A real folder with the same name: someone installed it manually. Never
   // destroy it silently — report it and let the user decide.

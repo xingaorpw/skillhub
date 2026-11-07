@@ -15,6 +15,8 @@ import {
   CONFIG_NAME,
   DEFAULT_HUB,
   addToShelf,
+  adoptAll,
+  adoptStray,
   buildPlan,
   countByAction,
   detectTools,
@@ -99,6 +101,10 @@ async function main(argv) {
       return cmdConfig(hubDir, rest, flags);
     case 'tune':
       return cmdTune(hubDir, flags);
+    case 'adopt':
+      return cmdAdopt(hubDir, flags);
+    case 'guard':
+      return cmdGuard(hubDir, flags);
     case 'doctor':
       return cmdDoctor(hubDir, flags);
     default:
@@ -440,6 +446,82 @@ function cmdTune(hubDir, flags) {
 }
 
 /**
+ * `skillhub adopt [--dry-run]` — pull skills that were installed straight into a
+ * tool folder into the hub, leaving a link behind.
+ *
+ * @param {string} hubDir
+ * @param {Record<string, any>} flags
+ */
+function cmdAdopt(hubDir, flags) {
+  const state = getState({ hubDir });
+  const dryRun = Boolean(flags['dry-run']);
+  const { adopted, failed } = adoptAll(hubDir, state.tools, { dryRun, overwrite: Boolean(flags.overwrite) });
+
+  if (!adopted.length && !failed.length) {
+    console.log(`${color.green('✓')} nothing to adopt — every skill in a tool folder is already a link`);
+    return;
+  }
+
+  for (const item of adopted) {
+    const verb = dryRun ? 'would adopt' : item.action === 'skipped' ? 'skipped (exists, use --overwrite)' : 'adopted';
+    console.log(`  ${color.cyan('+')} ${item.name.padEnd(28)} ${color.dim(item.tool)} · ${verb}`);
+  }
+  for (const failure of failed) {
+    console.log(`  ${color.red('✗')} ${failure.stray.name.padEnd(28)} ${color.dim(failure.stray.tool)} · ${failure.error}`);
+  }
+
+  console.log('');
+  console.log(`${adopted.length} adopted, ${failed.length} failed`);
+  if (dryRun) console.log(color.dim('run again without --dry-run to move them'));
+  else if (adopted.length) console.log(color.dim('run `skillhub link` to make the catalogue match the shelf'));
+}
+
+/**
+ * `skillhub guard` — keep watching the tool directories and adopt anything that
+ * shows up, so a tool that installs skills on its own cannot create a second
+ * copy that the others never see.
+ *
+ * @param {string} hubDir
+ * @param {Record<string, any>} flags
+ */
+function cmdGuard(hubDir, flags) {
+  const state = getState({ hubDir });
+  const interval = Math.max(1000, Number(flags.interval) || 4000);
+
+  if (!state.tools.length) {
+    console.log(`${color.yellow('!')} no tool directories detected — nothing to guard`);
+    return;
+  }
+
+  console.log(`${color.green('✓')} guarding ${state.tools.length} tool folders`);
+  for (const tool of state.tools) console.log(color.dim(`  ${tool.label.padEnd(20)} ${tool.path}`));
+  console.log(color.dim(`  polling every ${interval}ms · ctrl+c to stop`));
+
+  const sweep = () => {
+    const { adopted, failed } = adoptAll(hubDir, getState({ hubDir }).tools);
+    for (const item of adopted) {
+      console.log(`${color.cyan('+')} adopted ${item.name} from ${item.tool} @ ${new Date().toLocaleTimeString()}`);
+    }
+    for (const failure of failed) {
+      console.log(`${color.red('✗')} ${failure.stray.name}: ${failure.error}`);
+    }
+    if (adopted.length) linkAll({ hubDir });
+  };
+
+  sweep();
+  // A poll is more reliable than fs.watch here: installers write many files, and
+  // network drives or editors do not always emit events.
+  const timer = setInterval(sweep, interval);
+  const stop = () => {
+    clearInterval(timer);
+    console.log(color.dim('\nstopped'));
+    process.exit(0);
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+}
+
+/**
  * @param {string} hubDir
  */
 function cmdDoctor(hubDir) {
@@ -535,8 +617,9 @@ function relink(hubDir, flags) {
   }
 
   const prefix = dryRun ? color.dim('[dry-run] ') : '';
+  const relinked = result.relinked ? `, ${result.relinked} relinked` : '';
   console.log(
-    `${prefix}${color.green('✓')} links: ${result.created} created, ${result.removed} removed, ` +
+    `${prefix}${color.green('✓')} links: ${result.created} created, ${result.removed} removed${relinked}, ` +
       `${counts.ok ?? 0} unchanged, ${counts.blocked ?? 0} blocked`,
   );
   if (result.failed.length) {
@@ -615,6 +698,8 @@ ${color.bold('COMMANDS')}
   git [init|status]       turn the hub into a repository / show its state
   config <key> [value]    read or set budget and daily requests
   tune [--budget N]       plan the shelf that fits a token budget (--apply to do it)
+  adopt                   move skills that were installed into a tool folder into the hub
+  guard                   keep watching tool folders and adopt anything new
   doctor                  diagnose the hub, tools and links
 
 ${color.bold('OPTIONS')}

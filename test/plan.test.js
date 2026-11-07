@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { ensureHub, installFromDir, listSkills } from '../src/core/hub.js';
 import { applyPlan, buildPlan, countByAction } from '../src/core/plan.js';
-import { entryKind } from '../src/core/linker.js';
+import { createLink, entryKind, linkTarget } from '../src/core/linker.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE_REPO = path.join(__dirname, 'fixtures', 'repo');
@@ -34,6 +34,23 @@ test('plans links only for skills on the shelf', () => {
   assert.equal(alpha.action, 'create');
   assert.equal(beta.action, 'ok');
   assert.equal(countByAction(plan.items).create, 1);
+});
+
+test('a chained link is planned as a relink and replaced with a direct one', () => {
+  const { root, hubDir, toolPath, skills, tools } = setup();
+  const middle = path.join(root, 'middle', 'alpha');
+  fs.mkdirSync(path.dirname(middle), { recursive: true });
+  createLink(path.join(hubDir, 'alpha'), middle);
+  createLink(middle, path.join(toolPath, 'alpha'));
+
+  const plan = buildPlan({ hubDir, skills, tools, shelf: ['alpha'] });
+  const item = plan.items.find((entry) => entry.skill === 'alpha');
+  assert.equal(item.action, 'relink');
+  assert.equal(countByAction(plan.items).relink, 1);
+
+  const result = applyPlan(plan, { hubDir, tools });
+  assert.equal(result.relinked, 1);
+  assert.equal(linkTarget(path.join(toolPath, 'alpha')), path.join(hubDir, 'alpha'));
 });
 
 test('a null shelf means everything is linked', () => {

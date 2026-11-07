@@ -1,6 +1,6 @@
 {
   "name": "skillhub",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "One skill hub for every AI tool on every device — install a SKILL.md pack once, share it everywhere, manage it from a clean web console.",
   "type": "module",
   "bin": {
